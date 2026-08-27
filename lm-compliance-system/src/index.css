@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Custom styles for government banner tricolor ribbon */
+.gov-tricolor {
+  height: 4px;
+  background: linear-gradient(to right, #f58220 33%, #ffffff 33%, #ffffff 66%, #059669 66%);
+}
+
+/* Animations for AI scanning steps */
+@keyframes scanningLine {
+  0% {
+    top: 0%;
+  }
+  50% {
+    top: 100%;
+  }
+  100% {
+    top: 0%;
+  }
+}
+
+.scan-line {
+  position: absolute;
+  width: 100%;
+  height: 4px;
+  background: rgba(220, 38, 38, 0.7);
+  box-shadow: 0 0 8px rgba(220, 38, 38, 0.8);
+  animation: scanningLine 4s infinite linear;
+}
+
+/* Smooth custom scrollbars for high-density tables */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

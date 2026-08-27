@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: legal_metrology_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: legal_metrology
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    container_name: legal_metrology_api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/legal_metrology
+      - JWT_SECRET=8e9282fa2c8f8b3b428d08c5c70ea91b2db97561858c2a8684bd30a10f92b7ef
+      - ACCESS_TOKEN_EXPIRE_MINUTES=60
+      - UPLOAD_DIR=uploads
+      - REPORT_DIR=reports
+      - CORS_ORIGINS=["*"]
+      - OCR_PROVIDER=mock
+      - STORAGE_PROVIDER=local
+    volumes:
+      - ./uploads:/workspace/uploads
+      - ./reports:/workspace/reports
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
