@@ -48,6 +48,7 @@ export interface Inspection {
   calibrationScalePpm?: number;
   calibratedFontHeightMm?: number;
   caliperOverrideMm?: number;
+  panelImages?: { side: string; sideCode: string; imageUrl: string }[];
 }
 
 export interface Rule {
