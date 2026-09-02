@@ -419,6 +419,28 @@ function App() {
   const [verificationRemarks, setVerificationRemarks] = useState('');
   const [verificationCheck, setVerificationCheck] = useState(false);
 
+  // Officer Declaration Editor State
+  const [showEditDeclarationsModal, setShowEditDeclarationsModal] = useState<boolean>(false);
+  const [editFormData, setEditFormData] = useState<{
+    productName: string;
+    brand: string;
+    mrp: string;
+    netQuantity: string;
+    countryOfOrigin: string;
+    manufacturer: string;
+    consumerCare: string;
+    dateOfPackaging: string;
+  }>({
+    productName: '',
+    brand: '',
+    mrp: '',
+    netQuantity: '',
+    countryOfOrigin: 'India',
+    manufacturer: '',
+    consumerCare: '',
+    dateOfPackaging: ''
+  });
+
   // Rule Creator inputs
   const [showAddRuleModal, setShowAddRuleModal] = useState(false);
   const [newRuleData, setNewRuleData] = useState({
@@ -1147,7 +1169,99 @@ function App() {
 
   const activeInspection = inspections.find(i => i.id === activeInspectionId) || inspections[0] || fallbackInspection;
 
-  // Dashboard calculations
+  const openEditDeclarationsModal = () => {
+    if (!activeInspection) return;
+    const findDecl = (namePart: string) => {
+      return activeInspection.declarations.find(d => d.declaration.toLowerCase().includes(namePart.toLowerCase()))?.detectedValue || '';
+    };
+
+    setEditFormData({
+      productName: activeInspection.productName || '',
+      brand: activeInspection.brand || '',
+      mrp: findDecl('Retail Sale Price') || findDecl('MRP') || '',
+      netQuantity: findDecl('Net Quantity') || '',
+      countryOfOrigin: findDecl('Country of Origin') || 'India',
+      manufacturer: findDecl('Manufacturer') || activeInspection.manufacturer || '',
+      consumerCare: findDecl('Consumer Care') || '',
+      dateOfPackaging: findDecl('Date of Packaging') || findDecl('Date') || ''
+    });
+    setShowEditDeclarationsModal(true);
+  };
+
+  const handleSaveEditedDeclarations = () => {
+    if (!activeInspection) return;
+
+    const updatedDeclarations = activeInspection.declarations.map(decl => {
+      const lower = decl.declaration.toLowerCase();
+      if (lower.includes('retail sale price') || lower.includes('mrp')) {
+        return {
+          ...decl,
+          detectedValue: editFormData.mrp || decl.detectedValue,
+          status: (editFormData.mrp && editFormData.mrp !== 'N/A' && editFormData.mrp.trim().length > 1 ? 'PASS' : decl.status) as any
+        };
+      }
+      if (lower.includes('net quantity')) {
+        return {
+          ...decl,
+          detectedValue: editFormData.netQuantity || decl.detectedValue,
+          status: (editFormData.netQuantity && editFormData.netQuantity !== 'N/A' && editFormData.netQuantity.trim().length > 1 ? 'PASS' : decl.status) as any
+        };
+      }
+      if (lower.includes('country of origin')) {
+        return {
+          ...decl,
+          detectedValue: editFormData.countryOfOrigin || decl.detectedValue,
+          status: (editFormData.countryOfOrigin && editFormData.countryOfOrigin !== 'N/A' && editFormData.countryOfOrigin.trim().length > 1 ? 'PASS' : decl.status) as any
+        };
+      }
+      if (lower.includes('manufacturer')) {
+        return {
+          ...decl,
+          detectedValue: editFormData.manufacturer || decl.detectedValue,
+          status: (editFormData.manufacturer && editFormData.manufacturer !== 'N/A' && editFormData.manufacturer.trim().length > 1 ? 'PASS' : decl.status) as any
+        };
+      }
+      if (lower.includes('consumer care')) {
+        return {
+          ...decl,
+          detectedValue: editFormData.consumerCare || decl.detectedValue,
+          status: (editFormData.consumerCare && editFormData.consumerCare !== 'N/A' && editFormData.consumerCare.trim().length > 1 ? 'PASS' : decl.status) as any
+        };
+      }
+      if (lower.includes('date of packaging') || lower.includes('date of manufacture')) {
+        return {
+          ...decl,
+          detectedValue: editFormData.dateOfPackaging || decl.detectedValue,
+          status: (editFormData.dateOfPackaging && editFormData.dateOfPackaging !== 'N/A' && editFormData.dateOfPackaging.trim().length > 1 ? 'PASS' : decl.status) as any
+        };
+      }
+      return decl;
+    });
+
+    const failCount = updatedDeclarations.filter(d => d.status === 'FAIL').length;
+    const passCount = updatedDeclarations.filter(d => d.status === 'PASS').length;
+    const score = Math.round((passCount / updatedDeclarations.length) * 100);
+    const newStatus = score === 100 ? 'Compliant' : score >= 70 ? 'Manual Review' : 'Non-Compliant';
+
+    const updatedInspection: Inspection = {
+      ...activeInspection,
+      productName: editFormData.productName || activeInspection.productName,
+      brand: editFormData.brand || activeInspection.brand,
+      manufacturer: editFormData.manufacturer || activeInspection.manufacturer,
+      manufacturerAddress: editFormData.manufacturer || activeInspection.manufacturerAddress,
+      mrp: editFormData.mrp || activeInspection.mrp,
+      netQuantity: editFormData.netQuantity || activeInspection.netQuantity,
+      consumerCareDetails: editFormData.consumerCare || activeInspection.consumerCareDetails,
+      dateOfPackaging: editFormData.dateOfPackaging || activeInspection.dateOfPackaging,
+      declarations: updatedDeclarations,
+      violationsCount: failCount,
+      status: newStatus as any
+    };
+
+    setInspections(prev => prev.map(ins => ins.id === updatedInspection.id ? updatedInspection : ins));
+    setShowEditDeclarationsModal(false);
+    triggerToast("✓ Statutory declarations verified and compliance recalculated!");
+  };
   const totalScanned = inspections.length;
   const compliantCount = inspections.filter(i => i.status === 'Compliant').length;
   const nonCompliantCount = inspections.filter(i => i.status === 'Non-Compliant').length;
@@ -2925,7 +3039,17 @@ function App() {
                   
                   {/* Product card block */}
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 space-y-3">
-                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-1.5">SKU Metadata</h3>
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                      <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">SKU Metadata</h3>
+                      <button 
+                        onClick={openEditDeclarationsModal}
+                        className="text-[10px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 transition flex items-center space-x-1"
+                        title="Edit or correct statutory declarations"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                        <span>Edit SKU</span>
+                      </button>
+                    </div>
                     
                     {activeInspection.panelImages && activeInspection.panelImages.length > 1 && (
                       <div className="flex space-x-1 overflow-x-auto pb-1">
@@ -3000,7 +3124,16 @@ function App() {
 
                   {/* Declaration Table & Summary Checklist */}
                   <div className="md:col-span-3 bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-col">
-                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">Mandatory Declarations Checklist</h3>
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                      <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Mandatory Declarations Checklist</h3>
+                      <button 
+                        onClick={openEditDeclarationsModal}
+                        className="text-[10px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded border border-amber-200 transition flex items-center space-x-1.5 shadow-sm"
+                      >
+                        <Edit2 className="w-3 h-3 text-amber-600" />
+                        <span>✏️ Verify / Override Declarations</span>
+                      </button>
+                    </div>
                     
                     {/* Summary cards in grid */}
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-2 my-3">
@@ -3091,7 +3224,14 @@ function App() {
                     </div>
                   </div>
                   
-                  <div className="flex space-x-2 mt-3 md:mt-0">
+                  <div className="flex flex-wrap items-center gap-2 mt-3 md:mt-0">
+                    <button 
+                      onClick={openEditDeclarationsModal}
+                      className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold px-3 py-2 rounded text-xs tracking-wide uppercase transition flex items-center space-x-1 shadow-sm"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-amber-700" />
+                      <span>✏️ Correct / Edit Values</span>
+                    </button>
                     <button 
                       onClick={() => {
                         setShowAllBoxes(!showAllBoxes);
@@ -4442,10 +4582,19 @@ function App() {
 
                   {/* Section 3: Extracted Declarations */}
                   <div className="space-y-2">
-                    <h3 className="font-bold text-xs uppercase border-b border-slate-200 pb-1 flex items-center">
-                      <span className="bg-slate-900 text-white font-mono px-1.5 py-0.5 rounded text-[9px] mr-2">03</span>
-                      <span>LEGAL COMPLIANCE CHECKS AND FINDINGS</span>
-                    </h3>
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+                      <h3 className="font-bold text-xs uppercase flex items-center">
+                        <span className="bg-slate-900 text-white font-mono px-1.5 py-0.5 rounded text-[9px] mr-2">03</span>
+                        <span>LEGAL COMPLIANCE CHECKS AND FINDINGS</span>
+                      </h3>
+                      <button 
+                        onClick={openEditDeclarationsModal}
+                        className="text-[10px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 transition flex items-center space-x-1"
+                      >
+                        <Edit2 className="w-3 h-3 text-amber-600" />
+                        <span>Edit / Correct Findings</span>
+                      </button>
+                    </div>
                     
                     <table className="w-full text-left border-collapse text-[10px] font-sans border">
                       <thead>
@@ -5671,6 +5820,137 @@ function App() {
                       Save Changes
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Declaration Editor / Officer Override Modal */}
+          {showEditDeclarationsModal && activeInspection && (
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200">
+                <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Edit2 className="w-5 h-5 text-amber-600" />
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">Officer Verification & Declaration Editor</h3>
+                      <p className="text-[11px] text-slate-500">Correct or verify optical OCR readings under Legal Metrology Rules 2011</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowEditDeclarationsModal(false)}
+                    className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200 transition"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Product Name</label>
+                      <input 
+                        type="text"
+                        value={editFormData.productName}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, productName: e.target.value }))}
+                        className="w-full text-xs p-2.5 border border-slate-300 rounded focus:border-amber-500 focus:outline-none"
+                        placeholder="e.g. Parle-G Glucose Biscuits"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Brand Name</label>
+                      <input 
+                        type="text"
+                        value={editFormData.brand}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, brand: e.target.value }))}
+                        className="w-full text-xs p-2.5 border border-slate-300 rounded focus:border-amber-500 focus:outline-none"
+                        placeholder="e.g. Parle-G"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Maximum Retail Price (MRP)</label>
+                      <input 
+                        type="text"
+                        value={editFormData.mrp}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, mrp: e.target.value }))}
+                        className="w-full text-xs p-2.5 border border-slate-300 rounded focus:border-amber-500 focus:outline-none font-mono"
+                        placeholder="e.g. ₹ 45.00 (incl. of all taxes)"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-0.5 block">Rule 6(1)(e): Must specify inclusive of all taxes</span>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Net Quantity</label>
+                      <input 
+                        type="text"
+                        value={editFormData.netQuantity}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, netQuantity: e.target.value }))}
+                        className="w-full text-xs p-2.5 border border-slate-300 rounded focus:border-amber-500 focus:outline-none font-mono"
+                        placeholder="e.g. 500 g or 1 kg or 250 ml"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-0.5 block">Rule 12: Standard SI metric units</span>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Country of Origin</label>
+                      <input 
+                        type="text"
+                        value={editFormData.countryOfOrigin}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, countryOfOrigin: e.target.value }))}
+                        className="w-full text-xs p-2.5 border border-slate-300 rounded focus:border-amber-500 focus:outline-none"
+                        placeholder="e.g. India"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-0.5 block">Rule 6(1)(h): Mandatory country declaration</span>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Date of Packaging / Mfg</label>
+                      <input 
+                        type="text"
+                        value={editFormData.dateOfPackaging}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, dateOfPackaging: e.target.value }))}
+                        className="w-full text-xs p-2.5 border border-slate-300 rounded focus:border-amber-500 focus:outline-none font-mono"
+                        placeholder="e.g. 05/2026 or May 2026"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Manufacturer / Packer Name & Complete Address</label>
+                    <textarea 
+                      rows={2}
+                      value={editFormData.manufacturer}
+                      onChange={(e) => setEditFormData(prev => ({ ...prev, manufacturer: e.target.value }))}
+                      className="w-full text-xs p-2.5 border border-slate-300 rounded focus:border-amber-500 focus:outline-none"
+                      placeholder="e.g. Parle Products Pvt Ltd, North Level Crossing, Vile Parle East, Mumbai - 400057"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Consumer Care Helpline & Email</label>
+                    <input 
+                      type="text"
+                      value={editFormData.consumerCare}
+                      onChange={(e) => setEditFormData(prev => ({ ...prev, consumerCare: e.target.value }))}
+                      className="w-full text-xs p-2.5 border border-slate-300 rounded focus:border-amber-500 focus:outline-none"
+                      placeholder="e.g. Helpline: 1800-22-7799 | Email: cs@parle.biz"
+                    />
+                  </div>
+                </div>
+
+                <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end space-x-3">
+                  <button 
+                    type="button"
+                    onClick={() => setShowEditDeclarationsModal(false)}
+                    className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold px-4 py-2 rounded text-xs transition"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleSaveEditedDeclarations}
+                    className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-5 py-2 rounded text-xs transition shadow flex items-center space-x-1.5"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Save & Recalculate Compliance</span>
+                  </button>
                 </div>
               </div>
             </div>
