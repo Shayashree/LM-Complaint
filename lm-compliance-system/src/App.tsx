@@ -5,7 +5,7 @@ import {
   Search, Bell, MapPin, Download, Printer, Plus, Edit2, 
   RefreshCw, Upload, Camera, ZoomIn, ZoomOut, RotateCw, 
   ChevronRight, ArrowLeft, Check, X, Lock, LogIn, LogOut, Eye, Info, UserCheck, Globe,
-  Award, Sparkles, Scale
+  Sparkles, Scale
 } from 'lucide-react';
 import { 
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, 
@@ -475,8 +475,6 @@ function App() {
     }
   };
 
-  // Ecosystem & Gap Analysis view filter
-  const [gapTab, setGapTab] = useState<'pillars' | 'matrix' | 'limitations'>('pillars');
 
   // Violation Creator inputs
   const [showAddViolationModal, setShowAddViolationModal] = useState(false);
@@ -1377,7 +1375,6 @@ function App() {
                 { name: 'Reports Archive', id: 'report', icon: FileText },
                 { name: 'E-Commerce Audit', id: 'ecom', icon: Globe },
                 { name: 'Rule Repository', id: 'rules', icon: ShieldAlert },
-                { name: 'Ecosystem & Gap Analysis', id: 'gap_analysis', icon: Award },
                 { name: 'Analytics Hub', id: 'analytics', icon: Activity },
                 { name: 'Users & Roles', id: 'roles', icon: Users },
                 { name: 'Audit Logs', id: 'audit', icon: Activity },
@@ -1849,14 +1846,6 @@ function App() {
                   </div>
                   <div className="flex flex-wrap gap-2 mt-3 md:mt-0">
                     <button 
-                      onClick={() => setCurrentPage('gap_analysis')}
-                      className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3.5 py-2.5 rounded text-xs tracking-wide uppercase transition flex items-center space-x-1.5 shadow"
-                      title="View 6-Pillar Ecosystem Benchmark & Gap Analysis"
-                    >
-                      <Award className="w-4 h-4 text-white" />
-                      <span>Ecosystem Gap Analysis</span>
-                    </button>
-                    <button 
                       onClick={() => handleDemoStep(3)}
                       className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded text-xs tracking-wide uppercase transition flex items-center space-x-2 shadow"
                     >
@@ -2064,7 +2053,7 @@ function App() {
                   <p className="text-xs text-slate-500">Upload high-resolution camera photographs of packaged commodity labels to trigger automated legal metrology checks.</p>
                 </div>
 
-                {/* Pillar 1 & 4 Banner */}
+                {/* AI Scanner Banner */}
                 <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-blue-950 text-white p-4 rounded-lg border border-slate-700 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                   <div className="flex items-start space-x-3">
                     <div className="p-2 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg shrink-0 mt-0.5">
@@ -2072,20 +2061,13 @@ function App() {
                     </div>
                     <div>
                       <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                        <span>Open-Market Zero-Template AI Scanner</span>
-                        <span className="text-[9px] bg-blue-600/80 text-white px-1.5 py-0.2 rounded font-mono">Pillars 1 & 4</span>
+                        <span>Autonomous Legal Metrology Label Scanner</span>
                       </h4>
                       <p className="text-[11px] text-slate-300 leading-snug mt-0.5">
-                        Unlike industrial conveyor systems (Cognex) requiring pre-registered golden artwork or \$50k fixed cameras, this system inspects arbitrary shelf items via phone camera under statutory Indian LMPC Rules 2011.
+                        Inspects arbitrary packaged commodities using advanced multimodal computer vision under statutory Indian Legal Metrology (Packaged Commodities) Rules, 2011.
                       </p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => setCurrentPage('gap_analysis')} 
-                    className="text-[10px] uppercase tracking-wide font-bold text-slate-200 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded transition shrink-0 self-end md:self-center"
-                  >
-                    View Ecosystem Benchmark &rarr;
-                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -2127,10 +2109,10 @@ function App() {
                         </div>
                       </div>
 
-                      {/* Gap #1: Commodity Category Specific Rule Profile */}
+                      {/* Commodity Category Specific Rule Profile */}
                       <div className="pt-2.5 border-t border-slate-100 space-y-1">
                         <label className="block text-[10px] font-bold text-slate-700 uppercase flex items-center justify-between">
-                          <span>Commodity Profile (Gap #1)</span>
+                          <span>Commodity Category Profile</span>
                           <span className="text-[9px] text-amber-600 font-semibold">Rule Routing</span>
                         </label>
                         <select
@@ -2196,10 +2178,10 @@ function App() {
                         )}
                       </div>
 
-                      {/* Gap #2: Font-Size Calibration Mechanism */}
+                      {/* Font-Size Calibration Mechanism (Schedule II) */}
                       <div className="pt-2.5 border-t border-slate-100 space-y-2">
                         <label className="block text-[10px] font-bold text-slate-700 uppercase flex items-center justify-between">
-                          <span>Font Calibration (Gap #2)</span>
+                          <span>Font-Size Calibration</span>
                           <span className="text-[9px] text-blue-600 font-semibold">Rule 13 Sched II</span>
                         </label>
                         
@@ -3027,13 +3009,13 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Gap #2: Digital Vernier Caliper Manual Calibration Override */}
+                  {/* Digital Vernier Caliper Manual Calibration Override */}
                   <div className="p-4 bg-slate-900 text-white rounded-lg border border-slate-800 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <Scale className="w-4 h-4 text-amber-400" />
                         <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                          Officer Vernier Caliper Calibration Override (Gap #2)
+                          Officer Vernier Caliper Calibration Override
                         </span>
                       </div>
                       <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-mono">
@@ -5244,566 +5226,9 @@ function App() {
                         </div>
 
                       </div>
-
                     </div>
                   );
                 })()}
-
-              </div>
-            )}
-
-            {/* 18. ECOSYSTEM BENCHMARK & GAP ANALYSIS */}
-            {currentPage === 'gap_analysis' && currentUser && (
-              <div className="space-y-6">
-                
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-200 pb-4">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded text-[10px] tracking-wide uppercase font-mono">
-                        SIH 2026 Competitive Framework
-                      </span>
-                      <span className="text-xs text-slate-400">•</span>
-                      <span className="text-xs font-semibold text-slate-500">Legal Metrology Innovation</span>
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-900 mt-1">Ecosystem Benchmark & Gap Analysis</h2>
-                    <p className="text-xs text-slate-500">
-                      Why existing systems (eMaap, Cognex, YOLO tag prototypes, manual consulting, Esko) fail in the open market — and how LM-ComplianceAuditor delivers a complete, accessible system.
-                    </p>
-                  </div>
-                  
-                  {/* Tab Filter Switcher */}
-                  <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 mt-3 md:mt-0 text-xs font-bold shrink-0">
-                    <button
-                      onClick={() => setGapTab('pillars')}
-                      className={`px-3 py-1.5 rounded transition ${
-                        gapTab === 'pillars' 
-                          ? 'bg-slate-900 text-white shadow-sm' 
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      6 Core Pillars
-                    </button>
-                    <button
-                      onClick={() => setGapTab('matrix')}
-                      className={`px-3 py-1.5 rounded transition ${
-                        gapTab === 'matrix' 
-                          ? 'bg-slate-900 text-white shadow-sm' 
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      Comparison Matrix
-                    </button>
-                    <button
-                      onClick={() => setGapTab('limitations')}
-                      className={`px-3 py-1.5 rounded transition ${
-                        gapTab === 'limitations' 
-                          ? 'bg-slate-900 text-white shadow-sm' 
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      6 Ecosystem Limitations
-                    </button>
-                  </div>
-                </div>
-
-                {/* KPI Metrics Strip */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm border-l-4 border-l-amber-500">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Turnaround Per SKU</span>
-                    <div className="flex items-baseline space-x-2 mt-1">
-                      <span className="text-2xl font-black text-slate-900">&lt; 4 Seconds</span>
-                      <span className="text-[10px] font-bold text-green-600">vs. 3-5 days manual</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Instant AI screening vs human review</span>
-                  </div>
-
-                  <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm border-l-4 border-l-blue-600">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Template Requirement</span>
-                    <div className="flex items-baseline space-x-2 mt-1">
-                      <span className="text-2xl font-black text-slate-900">Zero Template</span>
-                      <span className="text-[10px] font-bold text-blue-600">Open-Market</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Works on arbitrary unseeded products</span>
-                  </div>
-
-                  <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm border-l-4 border-l-green-600">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Legal Statute Coverage</span>
-                    <div className="flex items-baseline space-x-2 mt-1">
-                      <span className="text-2xl font-black text-slate-900">100% LMPC 2011</span>
-                      <span className="text-[10px] font-bold text-green-600">Rule 6 &amp; 13</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Statutory legal rules, not brand specs</span>
-                  </div>
-
-                  <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm border-l-4 border-l-purple-600">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Deployment Hardware</span>
-                    <div className="flex items-baseline space-x-2 mt-1">
-                      <span className="text-2xl font-black text-slate-900">Any Smartphone</span>
-                      <span className="text-[10px] font-bold text-purple-600">PWA Ready</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">No \$50k fixed conveyor cameras</span>
-                  </div>
-                </div>
-
-                {/* TAB 1: 6 CORE SOLUTION PILLARS */}
-                {gapTab === 'pillars' && (
-                  <div className="space-y-4">
-                    <div className="bg-blue-50 border border-blue-200 p-3.5 rounded-lg text-xs text-blue-900 flex items-start space-x-2.5">
-                      <Info className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="font-bold">The Core Innovation Gap Solved:</strong>
-                        <p className="mt-0.5 text-blue-800">
-                          No existing tool unites arbitrary product parsing, Indian statutory law encoding, packaging area geometry math, phone accessibility, and regulatory enforcement reporting in one unified platform. Below are the 6 architectural pillars of LM-ComplianceAuditor.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      
-                      {/* Pillar 1 */}
-                      <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between hover:border-amber-400 transition">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-900 rounded">PILLAR 01</span>
-                            <span className="text-[10px] text-slate-400 font-bold">Open-Market Ingestion</span>
-                          </div>
-                          <h3 className="font-bold text-sm text-slate-900 mt-2">Arbitrary, Unknown Third-Party Products (Zero Golden Template)</h3>
-                          <div className="mt-2.5 space-y-1.5 text-xs">
-                            <div className="p-2 bg-red-50/70 border border-red-150 rounded text-red-900">
-                              <span className="font-bold block text-[10px] text-red-700 uppercase">Existing Industry Failure:</span>
-                              Industrial systems (Cognex, Overview.ai) require a pre-registered "golden master" CAD template to compare against. They fail entirely when evaluating arbitrary shelf products or unindexed SKUs.
-                            </div>
-                            <div className="p-2 bg-green-50/70 border border-green-150 rounded text-green-900">
-                              <span className="font-bold block text-[10px] text-green-700 uppercase">LM-ComplianceAuditor Implementation:</span>
-                              Autonomous Multimodal Vision-Language Model (Gemini 1.5 Flash + PaddleOCR) extracts all 8 mandatory Rule 6 declarations on arbitrary physical commodities without needing prior CAD models or template registration.
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setCurrentPage('scan')}
-                          className="mt-4 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded text-xs tracking-wider uppercase transition flex items-center justify-center space-x-1.5"
-                        >
-                          <Scan className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Test Arbitrary Scan</span>
-                        </button>
-                      </div>
-
-                      {/* Pillar 2 */}
-                      <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between hover:border-amber-400 transition">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-900 rounded">PILLAR 02</span>
-                            <span className="text-[10px] text-slate-400 font-bold">Legal Metrology Engine</span>
-                          </div>
-                          <h3 className="font-bold text-sm text-slate-900 mt-2">Statute-Encoded Legal Rule Engine (LMPC Rules 2011 + Amendments)</h3>
-                          <div className="mt-2.5 space-y-1.5 text-xs">
-                            <div className="p-2 bg-red-50/70 border border-red-150 rounded text-red-900">
-                              <span className="font-bold block text-[10px] text-red-700 uppercase">Existing Industry Failure:</span>
-                              Factory inspection tools check internal company spec sheets (allergens, print defects), while YOLO tag scanners just extract text with zero legal compliance logic. None encode Indian statutory laws.
-                            </div>
-                            <div className="p-2 bg-green-50/70 border border-green-150 rounded text-green-900">
-                              <span className="font-bold block text-[10px] text-green-700 uppercase">LM-ComplianceAuditor Implementation:</span>
-                              Direct gazette rule engine validating Rule 6(1)(a)-(g), Rule 6(10)/10A E-Commerce mandates, standard unit symbols (kg, g, L, ml), Unit Sale Price (Rule 6(1)(g)), and Country of Origin (Rule 6(1)(f)).
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setCurrentPage('rules')}
-                          className="mt-4 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded text-xs tracking-wider uppercase transition flex items-center justify-center space-x-1.5"
-                        >
-                          <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-                          <span>View Legal Rules Repository</span>
-                        </button>
-                      </div>
-
-                      {/* Pillar 3 */}
-                      <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between hover:border-amber-400 transition">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-purple-100 text-purple-900 rounded">PILLAR 03</span>
-                            <span className="text-[10px] text-slate-400 font-bold">Geometry &amp; Spatial Math</span>
-                          </div>
-                          <h3 className="font-bold text-sm text-slate-900 mt-2">Principal Display Panel (PDP) &amp; Font Geometry (Rule 13 Schedule II)</h3>
-                          <div className="mt-2.5 space-y-1.5 text-xs">
-                            <div className="p-2 bg-red-50/70 border border-red-150 rounded text-red-900">
-                              <span className="font-bold block text-[10px] text-red-700 uppercase">Existing Industry Failure:</span>
-                              No existing tool calculates declared numeral and letter height in physical millimeters relative to the standardized surface area of the Principal Display Panel (PDP), which LMPC explicitly mandates.
-                            </div>
-                            <div className="p-2 bg-green-50/70 border border-green-150 rounded text-green-900">
-                              <span className="font-bold block text-[10px] text-green-700 uppercase">LM-ComplianceAuditor Implementation:</span>
-                              Spatial bounding box normalization engine calculating physical millimeter stroke height and validating against Schedule II area thresholds (&lt;50 cm²: ≥1.0mm, 50-200 cm²: ≥2.0mm, &gt;200 cm²: ≥4.0mm).
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setCurrentPage('evidence')}
-                          className="mt-4 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded text-xs tracking-wider uppercase transition flex items-center justify-center space-x-1.5"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Inspect Evidence Geometry</span>
-                        </button>
-                      </div>
-
-                      {/* Pillar 4 */}
-                      <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between hover:border-amber-400 transition">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-900 rounded">PILLAR 04</span>
-                            <span className="text-[10px] text-slate-400 font-bold">Field-First Mobility</span>
-                          </div>
-                          <h3 className="font-bold text-sm text-slate-900 mt-2">Smartphone &amp; Field-First Phone Usability</h3>
-                          <div className="mt-2.5 space-y-1.5 text-xs">
-                            <div className="p-2 bg-red-50/70 border border-red-150 rounded text-red-900">
-                              <span className="font-bold block text-[10px] text-red-700 uppercase">Existing Industry Failure:</span>
-                              Industrial systems rely on \$28k–\$70k conveyor-mounted high-speed cameras with controlled strobe lighting, completely unaffordable and physically impossible for field officers inspecting local shops.
-                            </div>
-                            <div className="p-2 bg-green-50/70 border border-green-150 rounded text-green-900">
-                              <span className="font-bold block text-[10px] text-green-700 uppercase">LM-ComplianceAuditor Implementation:</span>
-                              Progressive web platform optimized for any consumer Android/iOS smartphone browser. Works with single-photo mobile camera snapshots taken in variable, uncontrolled retail lighting.
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setCurrentPage('scan')}
-                          className="mt-4 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded text-xs tracking-wider uppercase transition flex items-center justify-center space-x-1.5"
-                        >
-                          <Camera className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Launch Camera Snapshot</span>
-                        </button>
-                      </div>
-
-                      {/* Pillar 5 */}
-                      <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between hover:border-amber-400 transition">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-indigo-100 text-indigo-900 rounded">PILLAR 05</span>
-                            <span className="text-[10px] text-slate-400 font-bold">Enforcement Case Lifecycle</span>
-                          </div>
-                          <h3 className="font-bold text-sm text-slate-900 mt-2">Regulatory Case Management &amp; Automated Legal PDF Notices</h3>
-                          <div className="mt-2.5 space-y-1.5 text-xs">
-                            <div className="p-2 bg-red-50/70 border border-red-150 rounded text-red-900">
-                              <span className="font-bold block text-[10px] text-red-700 uppercase">Existing Industry Failure:</span>
-                              AI research prototypes and consulting services have no regulatory case management, evidence attachment for legal proceedings, official PDF generation, or inspector vs supervisor hierarchy.
-                            </div>
-                            <div className="p-2 bg-green-50/70 border border-green-150 rounded text-green-900">
-                              <span className="font-bold block text-[10px] text-green-700 uppercase">LM-ComplianceAuditor Implementation:</span>
-                              Automatic ReportLab PDF generation for every scanned product, officer remark sign-off workflow, supervisor compounding approvals, and tamper-evident SHA-256 audit logging.
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setCurrentPage('report')}
-                          className="mt-4 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded text-xs tracking-wider uppercase transition flex items-center justify-center space-x-1.5"
-                        >
-                          <FileText className="w-3.5 h-3.5 text-amber-400" />
-                          <span>View Generated Legal PDF Reports</span>
-                        </button>
-                      </div>
-
-                      {/* Pillar 6 */}
-                      <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-between hover:border-amber-400 transition">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 bg-teal-100 text-teal-900 rounded">PILLAR 06</span>
-                            <span className="text-[10px] text-slate-400 font-bold">Affordability &amp; Interoperability</span>
-                          </div>
-                          <h3 className="font-bold text-sm text-slate-900 mt-2">Government-Scale Affordability &amp; Central eMaap Interoperability</h3>
-                          <div className="mt-2.5 space-y-1.5 text-xs">
-                            <div className="p-2 bg-red-50/70 border border-red-150 rounded text-red-900">
-                              <span className="font-bold block text-[10px] text-red-700 uppercase">Existing Industry Failure:</span>
-                              Manual consultants charge high recurring fees per label (\$200–\$500), and state portals remain fragmented silos with no unified cross-state repository of past violations or repeat offenders.
-                            </div>
-                            <div className="p-2 bg-green-50/70 border border-green-150 rounded text-green-900">
-                              <span className="font-bold block text-[10px] text-green-700 uppercase">LM-ComplianceAuditor Implementation:</span>
-                              Zero per-seat licensing software stack (FastAPI, SQLite/Postgres, React) designed to integrate directly with National eMaap portals via REST APIs for centralized repeat offender tracking.
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setCurrentPage('analytics')}
-                          className="mt-4 w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded text-xs tracking-wider uppercase transition flex items-center justify-center space-x-1.5"
-                        >
-                          <Activity className="w-3.5 h-3.5 text-amber-400" />
-                          <span>View National Analytics Hub</span>
-                        </button>
-                      </div>
-
-                    </div>
-                  </div>
-                )}
-
-                {/* TAB 2: COMPARISON MATRIX */}
-                {gapTab === 'matrix' && (
-                  <div className="bg-white p-5 rounded-lg border border-slate-200 shadow-sm space-y-4">
-                    <div className="border-b border-slate-150 pb-3">
-                      <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                        Comprehensive Legal Metrology Competitive Benchmark
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Evaluating 7 technology approaches against the 8 requirements of real-world Indian packaged commodity regulatory enforcement.
-                      </p>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse text-[11px]">
-                        <thead>
-                          <tr className="bg-slate-900 text-white font-bold border-b border-slate-800">
-                            <th className="p-3">Capability / Dimension</th>
-                            <th className="p-3 text-center">1. Govt Portals (eMaap)</th>
-                            <th className="p-3 text-center">2. Industrial AI (Cognex)</th>
-                            <th className="p-3 text-center">3. YOLO Tag Scanners</th>
-                            <th className="p-3 text-center">4. Manual Consultants</th>
-                            <th className="p-3 text-center">5. Packaging Proofing</th>
-                            <th className="p-3 text-center">6. E-Com Self-Policing</th>
-                            <th className="p-3 text-center bg-amber-600 text-white">7. LM-ComplianceAuditor</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                          
-                          <tr className="hover:bg-slate-50 transition">
-                            <td className="p-3 font-bold text-slate-800">
-                              <span>Arbitrary Open-Market Products</span>
-                              <span className="block text-[10px] text-slate-400 font-normal">Works without pre-loaded CAD or golden master template</span>
-                            </td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ No Image Scanning</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Golden Master Only</span></td>
-                            <td className="p-3 text-center"><span className="text-amber-600 font-bold">⚠️ Narrow tags only</span></td>
-                            <td className="p-3 text-center"><span className="text-amber-600 font-bold">⚠️ Human manual</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Design file only</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Catalog listing only</span></td>
-                            <td className="p-3 text-center bg-amber-50/70 font-bold text-green-700">🟢 Full Multimodal VLM</td>
-                          </tr>
-
-                          <tr className="hover:bg-slate-50 transition">
-                            <td className="p-3 font-bold text-slate-800">
-                              <span>Indian LMPC 2011 Statute Rules</span>
-                              <span className="block text-[10px] text-slate-400 font-normal">Validates Rule 6(1)(a)-(g), USP, Country of Origin</span>
-                            </td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ No Rule Engine</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Internal spec only</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ No legal logic</span></td>
-                            <td className="p-3 text-center"><span className="text-green-600 font-bold">🟢 Human checklists</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Generic proofing</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Unchecked text</span></td>
-                            <td className="p-3 text-center bg-amber-50/70 font-bold text-green-700">🟢 Gazette Engine Seeded</td>
-                          </tr>
-
-                          <tr className="hover:bg-slate-50 transition">
-                            <td className="p-3 font-bold text-slate-800">
-                              <span>Font Height vs Panel Area (Rule 13)</span>
-                              <span className="block text-[10px] text-slate-400 font-normal">Geometric ratio checks against Schedule II PDP area</span>
-                            </td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ None</span></td>
-                            <td className="p-3 text-center"><span className="text-amber-600 font-bold">⚠️ Pixel count only</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ None</span></td>
-                            <td className="p-3 text-center"><span className="text-amber-600 font-bold">⚠️ Manual ruler check</span></td>
-                            <td className="p-3 text-center"><span className="text-amber-600 font-bold">⚠️ Vector font size</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ None</span></td>
-                            <td className="p-3 text-center bg-amber-50/70 font-bold text-green-700">🟢 Physical mm Math Engine</td>
-                          </tr>
-
-                          <tr className="hover:bg-slate-50 transition">
-                            <td className="p-3 font-bold text-slate-800">
-                              <span>Smartphone Field Deployment</span>
-                              <span className="block text-[10px] text-slate-400 font-normal">Works from phone camera under uncontrolled lighting</span>
-                            </td>
-                            <td className="p-3 text-center"><span className="text-amber-600 font-bold">⚠️ Desktop web forms</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ \$50k fixed cameras</span></td>
-                            <td className="p-3 text-center"><span className="text-green-600 font-bold">🟢 Mobile camera</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Office desktop</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Pre-press workstation</span></td>
-                            <td className="p-3 text-center"><span className="text-amber-600 font-bold">⚠️ Web interface</span></td>
-                            <td className="p-3 text-center bg-amber-50/70 font-bold text-green-700">🟢 Mobile-First PWA</td>
-                          </tr>
-
-                          <tr className="hover:bg-slate-50 transition">
-                            <td className="p-3 font-bold text-slate-800">
-                              <span>Regulatory Enforcement &amp; PDF Notices</span>
-                              <span className="block text-[10px] text-slate-400 font-normal">Official ReportLab PDF, supervisor review &amp; audit trails</span>
-                            </td>
-                            <td className="p-3 text-center"><span className="text-amber-600 font-bold">⚠️ Paper-based offline</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Factory reject signal</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Raw JSON string</span></td>
-                            <td className="p-3 text-center"><span className="text-green-600 font-bold">🟢 Word/PDF manual</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Design markups</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Ticket delisting</span></td>
-                            <td className="p-3 text-center bg-amber-50/70 font-bold text-green-700">🟢 Automated Legal PDF</td>
-                          </tr>
-
-                          <tr className="hover:bg-slate-50 transition">
-                            <td className="p-3 font-bold text-slate-800">
-                              <span>Centralized Repeat Offender DB</span>
-                              <span className="block text-[10px] text-slate-400 font-normal">Searchable database of past violations and manufacturers</span>
-                            </td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Fragmented states</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Single plant only</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ None</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Client confidential</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Brand internal</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Seller account only</span></td>
-                            <td className="p-3 text-center bg-amber-50/70 font-bold text-green-700">🟢 Unified Violations Board</td>
-                          </tr>
-
-                          <tr className="hover:bg-slate-50 transition">
-                            <td className="p-3 font-bold text-slate-800">
-                              <span>E-Commerce Dual Audit (Rule 6(10))</span>
-                              <span className="block text-[10px] text-slate-400 font-normal">Cross-audits physical packaging vs digital listings</span>
-                            </td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ None</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ None</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ None</span></td>
-                            <td className="p-3 text-center"><span className="text-amber-600 font-bold">⚠️ Manual web lookup</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ None</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ Self-policing</span></td>
-                            <td className="p-3 text-center bg-amber-50/70 font-bold text-green-700">🟢 Automated Web Scraper</td>
-                          </tr>
-
-                          <tr className="hover:bg-slate-50 transition">
-                            <td className="p-3 font-bold text-slate-800">
-                              <span>Inspection Speed &amp; Cost Model</span>
-                              <span className="block text-[10px] text-slate-400 font-normal">Economic and temporal viability for nationwide enforcement</span>
-                            </td>
-                            <td className="p-3 text-center"><span className="text-amber-600 font-bold">⚠️ Manual paper delays</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ \$28k–\$70k/yr</span></td>
-                            <td className="p-3 text-center"><span className="text-green-600 font-bold">🟢 Fast but incomplete</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ 3-5 days / \$250 per SKU</span></td>
-                            <td className="p-3 text-center"><span className="text-red-600 font-bold">❌ \$15k/seat pre-press</span></td>
-                            <td className="p-3 text-center"><span className="text-amber-600 font-bold">⚠️ Selective seller fees</span></td>
-                            <td className="p-3 text-center bg-amber-50/70 font-bold text-green-700">🟢 &lt;4s / Open Stack (~₹0.10)</td>
-                          </tr>
-
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* TAB 3: 6 ECOSYSTEM LIMITATIONS */}
-                {gapTab === 'limitations' && (
-                  <div className="space-y-4">
-                    <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-lg text-xs text-amber-900 flex items-start space-x-2.5">
-                      <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                      <div>
-                        <strong className="font-bold">Ecosystem Reality Check:</strong>
-                        <p className="mt-0.5 text-amber-800">
-                          Why the existing technological landscape fails to meet the needs of Indian Legal Metrology enforcement officers in the field.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                      {/* 1. Government Portals */}
-                      <div className="bg-white p-5 rounded-lg border border-slate-250 shadow-sm space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold font-mono">1</span>
-                          <h3 className="font-bold text-sm text-slate-900">Government Portals (eMaap &amp; State Portals)</h3>
-                        </div>
-                        <ul className="text-xs text-slate-650 space-y-2 list-disc pl-4">
-                          <li><strong>No image-based verification:</strong> Systems handle licensing, registration, and model approvals, but have zero capability to scan an actual physical product label.</li>
-                          <li><strong>Enforcement remains offline:</strong> Field inspections and compounding of offences remain manual/paper-based even as registration moves online.</li>
-                          <li><strong>Fragmented state baselines:</strong> Disparate state portals operate as inconsistent, non-interoperable silos with no centralized national violation database.</li>
-                          <li><strong>Reactive, not proactive:</strong> Enforcement relies on someone manually filing a complaint; no automated proactive scanning exists.</li>
-                          <li><strong>No historical repository:</strong> Officers lack a searchable repository of past inspections or repeat offenders to cross-reference in the field.</li>
-                        </ul>
-                        <div className="pt-2 border-t border-slate-100 text-[11px] text-green-700 font-semibold flex items-center space-x-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                          <span>LM-ComplianceAuditor bridges eMaap with instant vision AI &amp; shared violation databases.</span>
-                        </div>
-                      </div>
-
-                      {/* 2. Industrial AI */}
-                      <div className="bg-white p-5 rounded-lg border border-slate-250 shadow-sm space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold font-mono">2</span>
-                          <h3 className="font-bold text-sm text-slate-900">Industrial AI Systems (Cognex, Overview.ai, DigitFactory)</h3>
-                        </div>
-                        <ul className="text-xs text-slate-650 space-y-2 list-disc pl-4">
-                          <li><strong>Single-manufacturer factory lines:</strong> Verifies products only against pre-registered "golden templates" / approved CAD artwork; cannot assess arbitrary third-party shelf products.</li>
-                          <li><strong>Not rule-aware for Indian law:</strong> Checks against internal factory specs (print blemishes, barcode contrast), not statutory LMPC Rules 2011 (mandated declarations, font heights, MRP formats).</li>
-                          <li><strong>Cost mismatch:</strong> Priced at \$28k–\$70k/year platform costs with SAP/MES integration, completely unaffordable for field officers.</li>
-                          <li><strong>Hardware dependent:</strong> Requires conveyor-mounted high-speed cameras under calibrated strobe lighting rather than working from phone snapshots.</li>
-                          <li><strong>No enforcement workflow:</strong> Lacks legal case management, supervisor sign-offs, and court-ready legal notices.</li>
-                        </ul>
-                        <div className="pt-2 border-t border-slate-100 text-[11px] text-green-700 font-semibold flex items-center space-x-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                          <span>LM-ComplianceAuditor eliminates template dependency with generic VLM extraction.</span>
-                        </div>
-                      </div>
-
-                      {/* 3. AI Text Prototypes */}
-                      <div className="bg-white p-5 rounded-lg border border-slate-250 shadow-sm space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold font-mono">3</span>
-                          <h3 className="font-bold text-sm text-slate-900">AI Tag Scanners (YOLO + OCR Prototypes)</h3>
-                        </div>
-                        <ul className="text-xs text-slate-650 space-y-2 list-disc pl-4">
-                          <li><strong>Narrow scope:</strong> Built only for specific garment price tags (Brand, Size, MRP); fails across diverse packaged categories (food, cosmetics, chemicals, electronics).</li>
-                          <li><strong>No compliance logic layer:</strong> Extracts raw text strings but lacks the rule validation layer to determine whether values satisfy legal standards (standard units, MRP tax inclusion).</li>
-                          <li><strong>Zero font geometry checks:</strong> Cannot calculate declared numeral/font height in physical mm relative to the area of the principal display panel (Rule 13 Schedule II).</li>
-                        </ul>
-                        <div className="pt-2 border-t border-slate-100 text-[11px] text-green-700 font-semibold flex items-center space-x-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                          <span>LM-ComplianceAuditor couples OCR with a gazette-compliant Rule Engine and Schedule II math.</span>
-                        </div>
-                      </div>
-
-                      {/* 4. Manual Consulting */}
-                      <div className="bg-white p-5 rounded-lg border border-slate-250 shadow-sm space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold font-mono">4</span>
-                          <h3 className="font-bold text-sm text-slate-900">Manual Consulting Services (CliniExperts, Absolute Veritas)</h3>
-                        </div>
-                        <ul className="text-xs text-slate-650 space-y-2 list-disc pl-4">
-                          <li><strong>Entirely human-driven &amp; unscalable:</strong> Checking ~150 checkpoints manually takes 3–5 days per label; impossible for inspecting millions of retail and e-commerce SKUs.</li>
-                          <li><strong>Pre-market only:</strong> Designed to help brands get approved before going to market; unusable for field enforcement by government officers.</li>
-                          <li><strong>Expensive recurring costs:</strong> \$200–\$500 fee per label makes mass-market continuous monitoring economically unviable.</li>
-                          <li><strong>No digital infrastructure:</strong> No centralized enforcement dashboard, repeat-offender tracking, or real-time mobile reporting.</li>
-                        </ul>
-                        <div className="pt-2 border-t border-slate-100 text-[11px] text-green-700 font-semibold flex items-center space-x-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                          <span>LM-ComplianceAuditor reduces 3-5 days of manual checking to under 4 seconds at zero marginal cost.</span>
-                        </div>
-                      </div>
-
-                      {/* 5. Packaging Design Tools */}
-                      <div className="bg-white p-5 rounded-lg border border-slate-250 shadow-sm space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold font-mono">5</span>
-                          <h3 className="font-bold text-sm text-slate-900">Packaging Design &amp; Proofing Tools (Esko)</h3>
-                        </div>
-                        <ul className="text-xs text-slate-650 space-y-2 list-disc pl-4">
-                          <li><strong>Pre-print only:</strong> Checklist proofing occurs on vector art files before printing; cannot inspect the physical printed product on a retail shelf.</li>
-                          <li><strong>Misses post-print reality:</strong> Cannot catch ink bleed, print misalignments, sticker relabeling, or post-production tampering.</li>
-                          <li><strong>Not accessible to regulators:</strong> Proprietary brand packaging tools inaccessible to government inspectors and enforcement authorities.</li>
-                        </ul>
-                        <div className="pt-2 border-t border-slate-100 text-[11px] text-green-700 font-semibold flex items-center space-x-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                          <span>LM-ComplianceAuditor audits the actual real-world printed physical item in the hands of consumers.</span>
-                        </div>
-                      </div>
-
-                      {/* 6. E-Commerce Monitoring */}
-                      <div className="bg-white p-5 rounded-lg border border-slate-250 shadow-sm space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold font-mono">6</span>
-                          <h3 className="font-bold text-sm text-slate-900">E-Commerce Marketplace Self-Policing</h3>
-                        </div>
-                        <ul className="text-xs text-slate-650 space-y-2 list-disc pl-4">
-                          <li><strong>Largely aspirational:</strong> Platform-authority collaboration and automated compliance checks remain theoretical proposals.</li>
-                          <li><strong>Conflict of interest (self-policing):</strong> Relies on marketplaces policing their own sellers with no independent government audit tool.</li>
-                          <li><strong>Missing dual-audit:</strong> No mechanism to compare digital catalog text with the actual physical commodity arriving in delivery parcels.</li>
-                        </ul>
-                        <div className="pt-2 border-t border-slate-100 text-[11px] text-green-700 font-semibold flex items-center space-x-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                          <span>LM-ComplianceAuditor cross-references physical parcel scans with live marketplace listings (Rule 6(10)).</span>
-                        </div>
-                      </div>
-
-                    </div>
-                  </div>
-                )}
 
               </div>
             )}
