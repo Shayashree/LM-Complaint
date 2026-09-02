@@ -1974,7 +1974,7 @@ function App() {
                         {showApiKeyInput ? (
                           <div className="p-2 bg-amber-50 rounded border border-amber-200 space-y-1.5 mt-1">
                             <div className="text-[9px] text-amber-900 leading-tight">
-                              Paste your free <b>Google AI Studio API Key</b> to run live Gemini 1.5 Flash Vision on any uploaded packaging image:
+                              Paste your <b>Google AI Studio API Key</b> to activate next-gen <b>Gemini 2.5 / 2.0 Flash Vision</b> on any packaging photo:
                             </div>
                             <div className="flex space-x-1">
                               <input
@@ -1989,7 +1989,7 @@ function App() {
                                 onClick={() => {
                                   localStorage.setItem('gemini_api_key', geminiApiKey);
                                   setShowApiKeyInput(false);
-                                  triggerToast(geminiApiKey ? "Gemini Vision API Key saved!" : "Key cleared. Using smart local category engine.");
+                                  triggerToast(geminiApiKey ? "Gemini 2.5/2.0 Vision API Key saved!" : "Key cleared. Using smart local category engine.");
                                 }}
                                 className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-[9px]"
                               >
@@ -1999,7 +1999,7 @@ function App() {
                           </div>
                         ) : (
                           <p className="text-[9px] text-slate-500 leading-tight">
-                            {geminiApiKey ? '🟢 Live Multimodal Vision Active — Reading all printed declarations directly.' : '💡 Dynamic Category Mode Active — Tailors declarations to each uploaded image and commodity type.'}
+                            {geminiApiKey ? '🟢 Gemini 2.5 / 2.0 Flash Vision Active — Reading all printed declarations directly.' : '💡 Dynamic Category Mode Active — Tailors declarations to each uploaded image and commodity type.'}
                           </p>
                         )}
                       </div>
