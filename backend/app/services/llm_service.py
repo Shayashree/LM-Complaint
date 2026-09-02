@@ -73,7 +73,11 @@ class LLMService:
                         }],
                         "generationConfig": {"responseMimeType": "application/json"}
                     }
-                    response = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=25)
+                    headers = {
+                        "Content-Type": "application/json",
+                        "x-goog-api-key": api_key.strip()
+                    }
+                    response = requests.post(url, json=payload, headers=headers, timeout=25)
                     if response.status_code == 200:
                         resp_json = response.json()
                         text_out = resp_json["candidates"][0]["content"]["parts"][0]["text"].strip()
