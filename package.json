@@ -1,0 +1,7 @@
+﻿{
+  "name": "lm-compliance-root",
+  "private": true,
+  "scripts": {
+    "build": "cd lm-compliance-system && npm install && npm run build"
+  }
+}
