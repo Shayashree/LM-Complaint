@@ -419,6 +419,8 @@ function App() {
   const [imgPanX, setImgPanX] = useState(0);
   const [imgPanY, setImgPanY] = useState(0);
   const [evidenceRemarks, setEvidenceRemarks] = useState('');
+  const [lastOcrRawText, setLastOcrRawText] = useState<string>('');
+  const [showRawOcrDrawer, setShowRawOcrDrawer] = useState<boolean>(false);
 
   // Officer Verification inputs
   const [verificationRemarks, setVerificationRemarks] = useState('');
@@ -729,6 +731,10 @@ function App() {
                   reader.readAsDataURL(f.file!);
                 });
                 parts.push({ inlineData: { mimeType: f.file.type || 'image/jpeg', data: base64Data } });
+              } else if (f.previewUrl && f.previewUrl.startsWith('data:')) {
+                const mimeType = f.previewUrl.split(';')[0].split(':')[1] || 'image/jpeg';
+                const base64Data = f.previewUrl.split(',')[1] || '';
+                parts.push({ inlineData: { mimeType, data: base64Data } });
               }
             }
 
@@ -742,8 +748,8 @@ function App() {
                 })
               });
               if (res.ok) {
-                const data = await res.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                const json = await res.json();
+                const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (text) {
                   extFields = JSON.parse(text);
                   break;
@@ -775,6 +781,7 @@ function App() {
             );
             if (ocrResult && ocrResult.extractedDeclarations) {
               extFields = ocrResult.extractedDeclarations;
+              setLastOcrRawText(ocrResult.allText || '');
             }
           } catch (err) {
             console.warn("Tesseract client OCR error:", err);
@@ -3313,6 +3320,57 @@ function App() {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+
+                    {/* Raw Optical Text Drawer for Transparent Inspection */}
+                    <div className="mt-4 pt-3 border-t border-slate-200">
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => setShowRawOcrDrawer(!showRawOcrDrawer)}
+                          className="text-xs font-bold text-slate-700 hover:text-slate-900 flex items-center space-x-1.5"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-amber-600" />
+                          <span>{showRawOcrDrawer ? '▲ Hide Raw Optical Text' : '🔍 Inspect Raw Optical Text Read from Packaging'}</span>
+                          <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">
+                            {lastOcrRawText ? `${lastOcrRawText.split('\n').filter(Boolean).length} lines read` : 'Optical log'}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={openEditDeclarationsModal}
+                          className="text-[11px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded border border-amber-200 transition flex items-center space-x-1"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          <span>Type / Correct Declarations</span>
+                        </button>
+                      </div>
+
+                      {showRawOcrDrawer && (
+                        <div className="mt-2.5 p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono max-h-60 overflow-y-auto space-y-1 shadow-inner">
+                          <div className="text-[10px] text-slate-400 border-b border-slate-800 pb-1 flex justify-between">
+                            <span>RAW OPTICAL TEXT (TESSERACT PREPROCESSED PASS)</span>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(lastOcrRawText || '');
+                                triggerToast("Copied raw OCR text to clipboard!");
+                              }}
+                              className="text-amber-400 hover:underline"
+                            >
+                              Copy All
+                            </button>
+                          </div>
+                          {lastOcrRawText ? (
+                            <pre className="whitespace-pre-wrap leading-relaxed text-[11px] text-slate-300">
+                              {lastOcrRawText}
+                            </pre>
+                          ) : (
+                            <p className="text-slate-500 italic py-2">
+                              No raw OCR text recorded for this session yet. Upload a package photo on the Scan page to see real-time character extractions.
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                   </div>

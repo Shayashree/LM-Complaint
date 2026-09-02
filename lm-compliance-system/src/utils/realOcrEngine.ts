@@ -16,6 +16,104 @@ export interface ExtractedPanelResult {
   words: { text: string; bbox: [number, number, number, number]; confidence: number }[];
 }
 
+/**
+ * Preprocesses raw smartphone camera images for Tesseract OCR.
+ * Handles resizing, grayscale conversion, dark-background inversion (e.g. Ching's, Cadbury, dark bottles),
+ * and high-contrast thresholding so optical characters stand out clearly against packaging artwork.
+ */
+export async function preprocessImageForTesseract(source: File | string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+
+        // Scale to optimal OCR resolution (max 1800px on longest edge)
+        const maxDim = 1800;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(typeof source === 'string' ? source : URL.createObjectURL(source));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        const imgData = ctx.getImageData(0, 0, width, height);
+        const data = imgData.data;
+
+        // Measure average luminance across sampled pixels
+        let totalLum = 0;
+        let samples = 0;
+        const step = 8;
+        for (let i = 0; i < data.length; i += 4 * step) {
+          totalLum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          samples++;
+        }
+        const avgLum = samples > 0 ? totalLum / samples : 128;
+        const isDarkBackground = avgLum < 125; // Dark labels like Ching's Secret or Cadbury
+
+        // Apply contrast enhancement & polarity inversion if needed
+        for (let i = 0; i < data.length; i += 4) {
+          let lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+
+          // Invert if background is dark so white text becomes crisp black on white
+          if (isDarkBackground) {
+            lum = 255 - lum;
+          }
+
+          // High-contrast S-curve stretch to separate printed glyphs from background noise
+          let contrastVal: number;
+          if (lum < 110) {
+            contrastVal = Math.max(0, lum * 0.65);
+          } else if (lum > 145) {
+            contrastVal = Math.min(255, lum * 1.25 + 25);
+          } else {
+            contrastVal = lum;
+          }
+
+          data[i] = contrastVal;
+          data[i + 1] = contrastVal;
+          data[i + 2] = contrastVal;
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        resolve(canvas.toDataURL('image/jpeg', 0.92));
+      } catch (err) {
+        console.warn("Preprocessing failed, falling back to raw image", err);
+        resolve(typeof source === 'string' ? source : URL.createObjectURL(source));
+      }
+    };
+
+    img.onerror = () => {
+      resolve(typeof source === 'string' ? source : URL.createObjectURL(source));
+    };
+
+    if (typeof source === 'string') {
+      img.src = source;
+    } else {
+      const reader = new FileReader();
+      reader.onload = () => { img.src = reader.result as string; };
+      reader.onerror = () => { resolve(URL.createObjectURL(source)); };
+      reader.readAsDataURL(source);
+    }
+  });
+}
+
 export async function runRealMultiSideOcr(
   panels: PackagingSideItem[],
   onProgress?: (msg: string, pct: number) => void
@@ -34,17 +132,24 @@ export async function runRealMultiSideOcr(
     if (!p.file && !p.previewUrl) continue;
 
     if (onProgress) {
-      onProgress(`Reading text on ${p.side} (${i + 1}/${panels.length})...`, Math.round(((i) / panels.length) * 60) + 10);
+      onProgress(`Preprocessing & enhancing contrast on ${p.side} (${i + 1}/${panels.length})...`, Math.round(((i) / panels.length) * 60) + 5);
     }
 
     try {
-      const source = p.file || p.previewUrl!;
-      const result = await Tesseract.recognize(source, 'eng', {
+      const rawSource = p.file || p.previewUrl!;
+      // Preprocess image to enhance small statutory text, invert dark packaging, and boost glyph clarity
+      const preprocessedUrl = await preprocessImageForTesseract(rawSource);
+
+      if (onProgress) {
+        onProgress(`Optical OCR scan on ${p.side}...`, Math.round(((i) / panels.length) * 60) + 15);
+      }
+
+      const result = await Tesseract.recognize(preprocessedUrl, 'eng', {
         logger: (m: any) => {
           if (m && m.status === 'recognizing text') {
-            const currentPct = Math.round(((i + (m.progress || 0)) / panels.length) * 60) + 10;
+            const currentPct = Math.round(((i + (m.progress || 0)) / panels.length) * 60) + 15;
             if (onProgress) {
-              onProgress(`Extracting optical glyphs on ${p.side}: ${Math.round((m.progress || 0) * 100)}%`, currentPct);
+              onProgress(`Extracting printed characters on ${p.side}: ${Math.round((m.progress || 0) * 100)}%`, currentPct);
             }
           }
         }
@@ -87,7 +192,7 @@ export async function runRealMultiSideOcr(
   }
 
   if (onProgress) {
-    onProgress('Parsing statutory Legal Metrology declarations...', 80);
+    onProgress('Parsing statutory Legal Metrology declarations...', 85);
   }
 
   const frontText = panelMap['front'] || '';
@@ -306,6 +411,12 @@ export function parseLmpcDeclarationsFromText(
     productName = matchedProfile ? `${matchedProfile.brand} Schezwan Chutney` : "Schezwan Chutney";
   } else if (cleanLower.includes('noodles')) {
     productName = matchedProfile ? `${matchedProfile.brand} Instant Noodles` : "Instant Noodles";
+  } else if (!matchedProfile) {
+    const candidateLines = lines.filter(l => l.length >= 3 && l.length <= 50 && !/(?:mrp|net|batch|mfd|exp|pkd|care|ltd|pvt|rule|fssai|lic|nutri)/i.test(l));
+    if (candidateLines.length > 0) {
+      productName = candidateLines[0];
+      brand = productName.split(/\s+/)[0] || 'Brand';
+    }
   }
 
   // 3. STATUTORY MANUFACTURER (Rule 6(1)(b))
