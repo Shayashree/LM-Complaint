@@ -2130,50 +2130,50 @@ function App() {
                         </select>
                       </div>
 
-                      {/* AI Multimodal Vision Status & API Key Toggle */}
+                      {/* AI Multimodal Vision Status & Optional Custom Key */}
                       <div className="pt-2.5 border-t border-slate-100 space-y-1">
                         <div className="flex items-center justify-between">
                           <label className="text-[10px] font-bold text-slate-700 uppercase flex items-center space-x-1">
-                            <span className={`w-2 h-2 rounded-full ${geminiApiKey ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'} inline-block mr-1`}></span>
-                            <span>Vision Engine</span>
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block mr-1"></span>
+                            <span>Vision Engine Active</span>
                           </label>
                           <button
                             type="button"
                             onClick={() => setShowApiKeyInput(!showApiKeyInput)}
-                            className="text-[9px] text-amber-600 hover:text-amber-700 font-semibold underline"
+                            className="text-[9px] text-slate-400 hover:text-slate-600 font-medium underline"
                           >
-                            {geminiApiKey ? '🔑 Key Connected' : '⚙️ Add Gemini API Key'}
+                            {geminiApiKey ? '🔑 Custom Key Connected' : '⚙️ Custom API Key (Optional)'}
                           </button>
                         </div>
                         {showApiKeyInput ? (
-                          <div className="p-2 bg-amber-50 rounded border border-amber-200 space-y-1.5 mt-1">
-                            <div className="text-[9px] text-amber-900 leading-tight">
-                              Paste your <b>Google AI Studio API Key</b> to activate next-gen <b>Gemini 2.5 / 2.0 Flash Vision</b> on any packaging photo:
+                          <div className="p-2 bg-slate-50 rounded border border-slate-200 space-y-1.5 mt-1">
+                            <div className="text-[9px] text-slate-700 leading-tight">
+                              Optional: Connect a personal <b>Google AI Studio Key</b> for live Gemini Vision, or leave blank to use the built-in autonomous engine:
                             </div>
                             <div className="flex space-x-1">
                               <input
                                 type="password"
-                                placeholder="AIzaSy..."
+                                placeholder="AIzaSy... or AQ..."
                                 value={geminiApiKey}
                                 onChange={(e) => setGeminiApiKey(e.target.value)}
-                                className="flex-1 text-[10px] p-1.5 border border-amber-300 rounded bg-white text-slate-800 font-mono"
+                                className="flex-1 text-[10px] p-1.5 border border-slate-300 rounded bg-white text-slate-800 font-mono"
                               />
                               <button
                                 type="button"
                                 onClick={() => {
                                   localStorage.setItem('gemini_api_key', geminiApiKey);
                                   setShowApiKeyInput(false);
-                                  triggerToast(geminiApiKey ? "Gemini 2.5/2.0 Vision API Key saved!" : "Key cleared. Using smart local category engine.");
+                                  triggerToast(geminiApiKey ? "Custom Gemini Key saved!" : "Using built-in autonomous engine.");
                                 }}
-                                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-[9px]"
+                                className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded font-bold text-[9px]"
                               >
                                 Save
                               </button>
                             </div>
                           </div>
                         ) : (
-                          <p className="text-[9px] text-slate-500 leading-tight">
-                            {geminiApiKey ? '🟢 Gemini 2.5 / 2.0 Flash Vision Active — Reading all printed declarations directly.' : '💡 Dynamic Category Mode Active — Tailors declarations to each uploaded image and commodity type.'}
+                          <p className="text-[9px] text-emerald-700 font-medium leading-tight flex items-center gap-1">
+                            <span>✓ Ready to scan immediately — No API key or server setup required.</span>
                           </p>
                         )}
                       </div>
