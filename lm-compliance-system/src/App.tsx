@@ -365,7 +365,39 @@ function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   
   // Data States
-  const [inspections, setInspections] = useState<Inspection[]>(mockInspections);
+  const [inspections, setInspections] = useState<Inspection[]>(() => {
+    try {
+      const saved = localStorage.getItem('lm_inspections_repository');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load inspections from localStorage:", e);
+    }
+    return mockInspections;
+  });
+
+  // Sync inspections to localStorage whenever updated
+  useEffect(() => {
+    try {
+      const safeList = inspections.slice(0, 50).map(item => ({
+        ...item,
+        imageEvidenceUrl: item.imageEvidenceUrl?.startsWith('data:') && item.imageEvidenceUrl.length > 200000 
+          ? '' 
+          : item.imageEvidenceUrl,
+        panelImages: item.panelImages?.map(p => ({
+          ...p,
+          imageUrl: p.imageUrl?.startsWith('data:') && p.imageUrl.length > 200000 ? '' : p.imageUrl
+        }))
+      }));
+      localStorage.setItem('lm_inspections_repository', JSON.stringify(safeList));
+    } catch (e) {
+      console.warn("Failed to persist inspections to localStorage:", e);
+    }
+  }, [inspections]);
   const [rules, setRules] = useState<Rule[]>(mockRules);
   const [violations, setViolations] = useState<Violation[]>(mockViolations);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(mockAuditLogs);
@@ -694,7 +726,7 @@ function App() {
             // Move to result page once progress finishes
             setTimeout(() => {
               setCurrentPage('result');
-              triggerToast("AI screening complete! Official compliance PDF report generated.");
+              triggerToast("✓ Inspection recorded & saved to Enforcement Repository!");
             }, 800);
             return 100;
           }
@@ -3167,7 +3199,39 @@ Statutory Fields to Extract:
                       <UserCheck className="w-4 h-4 text-white" />
                       <span>Verify Findings</span>
                     </button>
+                    <button 
+                      onClick={() => {
+                        setInspectionSearch(activeInspection.id);
+                        setCurrentPage('inspections');
+                      }}
+                      className="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3.5 py-2.5 rounded text-xs tracking-wide uppercase transition flex items-center space-x-1.5 shadow"
+                      title="View all saved enforcement inspections in the central repository"
+                    >
+                      <Database className="w-4 h-4 text-emerald-200" />
+                      <span>View In Repository</span>
+                    </button>
                   </div>
+                </div>
+
+                {/* Repository Confirmation Notice */}
+                <div className="bg-emerald-50 border border-emerald-300 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between shadow-xs">
+                  <div className="flex items-center space-x-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse shrink-0"></span>
+                    <p className="text-xs text-emerald-950 font-medium">
+                      ✓ Inspection record <strong className="font-mono font-bold text-emerald-800">{activeInspection.id}</strong> has been <strong className="font-bold">saved to the Enforcement Inspections Repository</strong>.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInspectionSearch(activeInspection.id);
+                      setCurrentPage('inspections');
+                    }}
+                    className="text-xs font-bold text-emerald-800 hover:text-emerald-950 hover:underline flex items-center space-x-1 mt-1 sm:mt-0"
+                  >
+                    <span>Open In Repository</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
                 {/* Banner alert box */}
@@ -3948,8 +4012,18 @@ Statutory Fields to Extract:
                       placeholder="Search by Product, Brand, ID or Inspector..."
                       value={inspectionSearch}
                       onChange={(e) => setInspectionSearch(e.target.value)}
-                      className="pl-9 pr-3 py-2 bg-slate-50 border border-slate-350 rounded w-full outline-none focus:bg-white focus:ring-1 focus:ring-amber-500"
+                      className="pl-9 pr-14 py-2 bg-slate-50 border border-slate-350 rounded w-full outline-none focus:bg-white focus:ring-1 focus:ring-amber-500"
                     />
+                    {inspectionSearch && (
+                      <button 
+                        type="button" 
+                        onClick={() => setInspectionSearch('')}
+                        className="absolute right-3 top-2 text-slate-400 hover:text-slate-700 font-bold text-xs bg-slate-150 px-1.5 py-0.5 rounded"
+                        title="Clear filter to show all records"
+                      >
+                        ✕ All
+                      </button>
+                    )}
                   </div>
 
                   <div>
