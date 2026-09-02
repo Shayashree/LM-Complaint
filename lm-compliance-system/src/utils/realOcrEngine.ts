@@ -26,6 +26,7 @@ export async function runRealMultiSideOcr(
 }> {
   const panelResults: ExtractedPanelResult[] = [];
   let combinedText = '';
+  const panelMap: Record<string, string> = {};
   const filenames = panels.map(p => p.name || '').filter(Boolean);
 
   for (let i = 0; i < panels.length; i++) {
@@ -51,6 +52,7 @@ export async function runRealMultiSideOcr(
 
       const raw = result?.data?.text || '';
       combinedText += `\n--- [${p.side}] ---\n` + raw;
+      panelMap[p.sideCode] = (panelMap[p.sideCode] ? panelMap[p.sideCode] + '\n' : '') + raw;
 
       const words: { text: string; bbox: [number, number, number, number]; confidence: number }[] = [];
       const imgW = (result?.data as any)?.imageWidth || 800;
@@ -88,7 +90,8 @@ export async function runRealMultiSideOcr(
     onProgress('Parsing statutory Legal Metrology declarations...', 80);
   }
 
-  const extracted = parseLmpcDeclarationsFromText(combinedText, filenames);
+  const frontText = panelMap['front'] || '';
+  const extracted = parseLmpcDeclarationsFromText(combinedText, filenames, frontText, panelMap);
 
   return {
     allText: combinedText,
@@ -97,30 +100,31 @@ export async function runRealMultiSideOcr(
   };
 }
 
-export function parseLmpcDeclarationsFromText(text: string, filenames: string[] = []): Record<string, any> {
+export function parseLmpcDeclarationsFromText(
+  text: string, 
+  filenames: string[] = [],
+  frontText: string = '',
+  _panelMap: Record<string, string> = {}
+): Record<string, any> {
   const clean = text.replace(/\r/g, ' ');
   const lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
 
   // 1. Robust Multi-Line MRP Parsing
   let mrp = 'N/A';
-  // Check A: "MRP", "M.R.P.", "MAX RETAIL PRICE" with optional newline/words and price
   const mrpDeepMatch = clean.match(/(?:M\.?\s*R\.?\s*P\.?|MAX(?:IMUM)?\s*RETAIL\s*PRICE|RETAIL\s*PRICE|MAX\s*PRICE)[\s\S]{0,35}?(?:Rs\.?|INR|₹)?\s*([0-9]{1,5}(?:\.[0-9]{1,2})?)/i);
   if (mrpDeepMatch && parseFloat(mrpDeepMatch[1]) > 0) {
     const val = mrpDeepMatch[1];
     const hasTaxes = /incl(?:usive)?\s*(?:of)?\s*(?:all)?\s*taxes/i.test(clean);
     mrp = `₹ ${val} ${hasTaxes ? '(incl. of all taxes)' : '(incl. of all taxes)'}`;
   } else {
-    // Check B: Currency symbol directly before number (e.g. ₹45 or Rs. 120)
     const currMatch = clean.match(/(?:₹|Rs\.?|INR)\s*([0-9]{1,5}(?:\.[0-9]{1,2})?)/i);
     if (currMatch && parseFloat(currMatch[1]) > 0) {
       mrp = `₹ ${currMatch[1]} (incl. of all taxes)`;
     } else {
-      // Check C: Price followed by /- (e.g. 50/- or 25/-)
       const slashMatch = clean.match(/\b([0-9]{1,4}(?:\.[0-9]{1,2})?)\s*\/\-/);
       if (slashMatch && parseFloat(slashMatch[1]) > 0) {
         mrp = `₹ ${slashMatch[1]} (incl. of all taxes)`;
       } else {
-        // Check D: Any number followed by incl/taxes
         const taxMatch = clean.match(/([0-9]{1,4}(?:\.[0-9]{1,2})?)\s*(?:\(?[I|i]ncl|\(?[T|t]axes)/);
         if (taxMatch && parseFloat(taxMatch[1]) > 0) {
           mrp = `₹ ${taxMatch[1]} (incl. of all taxes)`;
@@ -131,20 +135,26 @@ export function parseLmpcDeclarationsFromText(text: string, filenames: string[] 
 
   // 2. Robust Net Quantity Parsing
   let netQty = 'N/A';
-  const qtyRegex = /(?:NET\s*(?:QTY|QUANTITY|WT\.?|WEIGHT|VOL(?:UME)?)?|CONTENTS?)\s*[:.\-]?\s*([0-9]+(?:\.[0-9]+)?\s*(?:kg|g|gm|gms|ml|l|ltr|litre|litres|n|units|pieces|pc|tablets|capsules|m|cm))\b/i;
-  const qtyMatch = clean.match(qtyRegex);
-  if (qtyMatch) {
-    netQty = qtyMatch[1].trim();
+  // Check front panel first for Net Qty (very common on FOP bottom right)
+  const frontQtyMatch = frontText.match(/(?:NET\s*(?:QTY|QUANTITY|WT\.?|WEIGHT|VOL(?:UME)?)?|CONTENTS?)\s*[:.\-]?\s*([0-9]+(?:\.[0-9]+)?\s*(?:kg|g|gm|gms|ml|l|ltr|litre|litres|n|units|pieces|pc|tablets|capsules|m|cm))\b/i);
+  if (frontQtyMatch) {
+    netQty = frontQtyMatch[1].trim();
   } else {
-    const standaloneMatch = clean.match(/\b([0-9]+(?:\.[0-9]+)?\s*(?:kg|g|gm|ml|l|ltr))\b/i);
-    if (standaloneMatch) {
-      netQty = standaloneMatch[1].trim();
+    const qtyRegex = /(?:NET\s*(?:QTY|QUANTITY|WT\.?|WEIGHT|VOL(?:UME)?)?|CONTENTS?)\s*[:.\-]?\s*([0-9]+(?:\.[0-9]+)?\s*(?:kg|g|gm|gms|ml|l|ltr|litre|litres|n|units|pieces|pc|tablets|capsules|m|cm))\b/i;
+    const qtyMatch = clean.match(qtyRegex);
+    if (qtyMatch) {
+      netQty = qtyMatch[1].trim();
+    } else {
+      const standaloneMatch = clean.match(/\b([0-9]+(?:\.[0-9]+)?\s*(?:kg|g|gm|ml|l|ltr))\b/i);
+      if (standaloneMatch) {
+        netQty = standaloneMatch[1].trim();
+      }
     }
   }
 
   // 3. Manufacturing / Packaging Date Parsing
   let mfgDate = 'N/A';
-  const mfgRegex = /(?:MFD|MFG|PACKED|PKD|DATE\s*OF\s*(?:MFG|PACKING|PKD))\s*[:.\-]?\s*([0-9]{1,2}[\/\.\-][0-9]{2,4}|[A-Za-z]{3,9}\s*[0-9]{2,4}|[0-9]{2,4}[\/\.\-][0-9]{1,2})/i;
+  const mfgRegex = /(?:MFD|MFG|PACKED|PKD|DATE\s*OF\s*(?:MFG|PACKING|PKD))[\s\S]{0,25}?([0-9]{1,2}[\/\.\-][0-9]{2,4}|[A-Za-z]{3,9}\s*[0-9]{2,4}|[0-9]{2,4}[\/\.\-][0-9]{1,2})/i;
   const mfgMatch = clean.match(mfgRegex);
   if (mfgMatch) {
     mfgDate = mfgMatch[1].trim();
@@ -155,12 +165,48 @@ export function parseLmpcDeclarationsFromText(text: string, filenames: string[] 
     }
   }
 
-  // 4. Best Before / Expiry Date Parsing
+  // 4. ROBUST BEST BEFORE / EXPIRY DATE PARSING (Rule 6(1)(d))
   let bestBefore = 'N/A';
-  const expRegex = /(?:BEST\s*BEFORE|EXP(?:IRY)?(?:\s*DATE)?|USE\s*BY)\s*[:.\-]?\s*([^\\n\r,;]{3,35})/i;
-  const expMatch = clean.match(expRegex);
-  if (expMatch) {
-    bestBefore = expMatch[1].trim();
+
+  // Pattern A: "BEST BEFORE" with relative months/days
+  // Matches: "BEST BEFORE 9 MONTHS FROM MANUFACTURE", "BEST BEFORE SIX MONTHS", "BEST BEFORE 180 DAYS"
+  const relRegex = /(?:BEST\s*BEFORE|CONSUME\s*BEFORE)[\s\S]{0,45}?\b([0-9]{1,2}|(?:ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN|ELEVEN|TWELVE|EIGHTEEN|TWENTY\s*FOUR))\s*(?:MONTHS?|DAYS?|WEEKS?|YEARS?)(?:\s*FROM\s*(?:MANUFACTURE|PACKAGING|DATE\s*OF\s*(?:MFG|PACKING|PKD)|MFD|PKD))?/i;
+  const relMatch = clean.match(relRegex);
+  if (relMatch) {
+    const rawMatched = relMatch[0].replace(/\s+/g, ' ').trim();
+    bestBefore = rawMatched.charAt(0).toUpperCase() + rawMatched.slice(1).toLowerCase();
+  } else {
+    // Pattern B: "BEST BEFORE" with explicit date (e.g. "BEST BEFORE: 24/11/2026")
+    const bbDateRegex = /(?:BEST\s*BEFORE)[\s\S]{0,30}?([0-9]{1,2}[\/\.\-][0-9]{2,4}|[A-Za-z]{3,9}\s*[0-9]{2,4})/i;
+    const bbDateMatch = clean.match(bbDateRegex);
+    if (bbDateMatch) {
+      bestBefore = `Best before ${bbDateMatch[1].trim()}`;
+    } else {
+      // Pattern C: Explicit "EXPIRY DATE", "EXP. DATE", "USE BY" with date
+      const expDateRegex = /(?:EXP(?:IRY)?(?:\s*DATE|\s*DT\.?)?|USE\s*BY(?:\s*DATE)?|DATE\s*OF\s*EXPIRY)[\s\S]{0,25}?([0-9]{1,2}[\/\.\-][0-9]{2,4}|[A-Za-z]{3,9}\s*[0-9]{2,4})/i;
+      const expDateMatch = clean.match(expDateRegex);
+      if (expDateMatch) {
+        bestBefore = `Expiry: ${expDateMatch[1].trim()}`;
+      } else {
+        // Pattern D: Compact "EXP: MM/YY" or "EXP. MM/YYYY" or "EXP 12/26"
+        const compactExpRegex = /\b(?:EXP\.?|EXPIRY)\s*[:.\-]?\s*([0-9]{1,2}[\/\.\-][0-9]{2,4})\b/i;
+        const compactExpMatch = clean.match(compactExpRegex);
+        if (compactExpMatch) {
+          bestBefore = `Expiry: ${compactExpMatch[1].trim()}`;
+        } else {
+          // Pattern E: Relative statement anywhere in packaging text
+          const standaloneRel = clean.match(/\b([0-9]{1,2}\s*(?:months?|days?)\s*from\s*(?:mfg|mfd|packaging|packing|date\s*of\s*(?:mfg|packing)))\b/i);
+          if (standaloneRel) {
+            bestBefore = `Best before ${standaloneRel[1].trim()}`;
+          } else {
+            const consumeWithin = clean.match(/consume\s*within\s*([0-9]{1,2}\s*(?:days?|months?))/i);
+            if (consumeWithin) {
+              bestBefore = `Consume within ${consumeWithin[1]}`;
+            }
+          }
+        }
+      }
+    }
   }
 
   // 5. Consumer Care Helpline & Email Parsing
@@ -208,13 +254,22 @@ export function parseLmpcDeclarationsFromText(text: string, filenames: string[] 
     }
   }
 
-  // 8. Robust Product Name & Brand Identification
+  // 8. PRODUCT NAME & BRAND EXTRACTION (PRIORITIZING FRONT PANEL FOP)
   let productName = 'Packaged Commodity Item';
   let brand = 'Product';
 
+  const isNoiseLine = (line: string): boolean => {
+    const l = line.toLowerCase();
+    if (line.length < 2 || line.length > 55) return true;
+    if (/^[0-9\s.,:\-_/()]+$/.test(line)) return true;
+    if (/(?:mrp|net\s*wt|net\s*qty|batch|mfd|mfg|exp|pkd|addr|care|ph|email|ltd|pvt|rule|fssai|lic|nutri|ingred|contain|store|cool|dry|place|keep|away|regd|trade|mark|barcode|serving|energy|protein|carb|sugar|fat|cholesterol|sodium|vegetarian|non-veg|green\s*dot|brown\s*dot)/i.test(l)) return true;
+    if (/^(new|free|save|offer|pack|best\s*quality|pure|fresh|super|combo|buy\s*1|get\s*1|special)$/i.test(l)) return true;
+    return false;
+  };
+
   const knownBrands: Record<string, string> = {
-    'parle': 'Parle-G',
     'parle-g': 'Parle-G',
+    'parle': 'Parle-G',
     'surf excel': 'Surf Excel',
     'surf': 'Surf Excel',
     'tata salt': 'Tata Salt',
@@ -234,7 +289,6 @@ export function parseLmpcDeclarationsFromText(text: string, filenames: string[] 
     'bingo': 'Bingo',
     'clinic plus': 'Clinic Plus',
     'head & shoulders': 'Head & Shoulders',
-    'head and shoulders': 'Head & Shoulders',
     'dove': 'Dove',
     'lux': 'Lux',
     'lifebuoy': 'Lifebuoy',
@@ -260,39 +314,79 @@ export function parseLmpcDeclarationsFromText(text: string, filenames: string[] 
     'kissan': 'Kissan'
   };
 
-  const combinedSearchText = (clean + ' ' + filenames.join(' ')).toLowerCase();
+  const frontLines = (frontText || '')
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length >= 2);
 
-  for (const [key, brandTitle] of Object.entries(knownBrands)) {
-    if (combinedSearchText.includes(key)) {
-      brand = brandTitle;
-      const lineWithBrand = lines.find(l => l.toLowerCase().includes(key));
-      if (lineWithBrand && lineWithBrand.length >= 4 && lineWithBrand.length <= 50) {
-        productName = lineWithBrand;
-      } else {
-        productName = `${brandTitle} Packaged Product`;
+  // Step A: Inspect Front Panel (FOP) text first
+  if (frontLines.length > 0) {
+    const frontJoinedLower = frontLines.join(' ').toLowerCase();
+
+    // Check known brands on Front Panel
+    for (const [key, brandTitle] of Object.entries(knownBrands)) {
+      if (frontJoinedLower.includes(key)) {
+        brand = brandTitle;
+        const brandLineIdx = frontLines.findIndex(l => l.toLowerCase().includes(key));
+        if (brandLineIdx !== -1) {
+          const matchedLine = frontLines[brandLineIdx];
+          if (matchedLine.length > key.length + 3 && !isNoiseLine(matchedLine)) {
+            productName = matchedLine;
+          } else if (frontLines[brandLineIdx + 1] && !isNoiseLine(frontLines[brandLineIdx + 1])) {
+            productName = `${brandTitle} ${frontLines[brandLineIdx + 1]}`;
+          } else {
+            productName = `${brandTitle} Packaged Product`;
+          }
+        }
+        break;
       }
-      break;
+    }
+
+    // If no known brand on front panel, pick prominent headline from Front Panel
+    if (brand === 'Product') {
+      const cleanFrontCandidates = frontLines.filter(l => !isNoiseLine(l));
+      if (cleanFrontCandidates.length > 0) {
+        const topCandidate = cleanFrontCandidates[0];
+        const nextCandidate = cleanFrontCandidates[1];
+        if (nextCandidate && topCandidate.split(/\s+/).length <= 2 && !isNoiseLine(nextCandidate)) {
+          brand = topCandidate.replace(/[^A-Za-z0-9\-'\s]/g, '').trim();
+          productName = `${brand} ${nextCandidate.replace(/[^A-Za-z0-9\-'\s]/g, '').trim()}`;
+        } else {
+          productName = topCandidate.replace(/[^A-Za-z0-9\-'\s]/g, '').trim();
+          brand = productName.split(/\s+/)[0] || 'Brand';
+        }
+      }
     }
   }
 
+  // Step B: Fallback to all text & filenames if Front Panel was empty or inconclusive
   if (brand === 'Product') {
-    const candidateLines = lines.filter(l => {
-      const lower = l.toLowerCase();
-      if (l.length < 3 || l.length > 50) return false;
-      if (/(?:mrp|net|wt|qty|batch|mfd|mfg|exp|pkd|addr|care|ph|email|ltd|pvt|rule|fssai|lic|nutri|ingred|contain|store|cool|dry|place|keep|away|regd|trade|mark|barcode)/i.test(lower)) return false;
-      if (/^[0-9\s.,:\-_/]+$/.test(l)) return false;
-      return true;
-    });
+    const combinedSearchText = (clean + ' ' + filenames.join(' ')).toLowerCase();
+    for (const [key, brandTitle] of Object.entries(knownBrands)) {
+      if (combinedSearchText.includes(key)) {
+        brand = brandTitle;
+        const lineWithBrand = lines.find(l => l.toLowerCase().includes(key));
+        if (lineWithBrand && lineWithBrand.length >= 4 && lineWithBrand.length <= 50 && !isNoiseLine(lineWithBrand)) {
+          productName = lineWithBrand;
+        } else {
+          productName = `${brandTitle} Packaged Product`;
+        }
+        break;
+      }
+    }
 
-    if (candidateLines.length > 0) {
-      productName = candidateLines[0];
-      const words = productName.split(/\s+/).filter(w => w.length > 1);
-      brand = words[0] || 'Brand';
-    } else if (filenames.length > 0 && filenames[0]) {
-      const cleanFn = filenames[0].replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ");
-      if (cleanFn.length >= 3) {
-        productName = cleanFn.charAt(0).toUpperCase() + cleanFn.slice(1);
-        brand = cleanFn.split(' ')[0] || 'Brand';
+    if (brand === 'Product') {
+      const candidateLines = lines.filter(l => !isNoiseLine(l));
+      if (candidateLines.length > 0) {
+        productName = candidateLines[0];
+        const words = productName.split(/\s+/).filter(w => w.length > 1);
+        brand = words[0] || 'Brand';
+      } else if (filenames.length > 0 && filenames[0]) {
+        const cleanFn = filenames[0].replace(/\.[^/.]+$/, "").replace(/[_-]+/g, " ");
+        if (cleanFn.length >= 3) {
+          productName = cleanFn.charAt(0).toUpperCase() + cleanFn.slice(1);
+          brand = cleanFn.split(' ')[0] || 'Brand';
+        }
       }
     }
   }

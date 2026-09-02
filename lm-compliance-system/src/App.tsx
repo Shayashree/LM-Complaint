@@ -430,6 +430,7 @@ function App() {
     manufacturer: string;
     consumerCare: string;
     dateOfPackaging: string;
+    bestBefore: string;
   }>({
     productName: '',
     brand: '',
@@ -438,7 +439,8 @@ function App() {
     countryOfOrigin: 'India',
     manufacturer: '',
     consumerCare: '',
-    dateOfPackaging: ''
+    dateOfPackaging: '',
+    bestBefore: ''
   });
 
   // Rule Creator inputs
@@ -817,9 +819,18 @@ function App() {
           { declaration: 'COUNTRY OF ORIGIN', detectedValue: extFields.country_of_origin, required: true, status: 'PASS', confidence: 97, ruleReference: 'Rule 6(1)(f)', boundingBox: [10, 88, 30, 6], measuredFontHeightMm: measuredFont, requiredFontHeightMm: reqFont }
         ];
 
-        if (extFields.best_before_or_expiry && extFields.best_before_or_expiry !== 'N/A') {
-          decls.push({ declaration: 'BEST BEFORE / EXPIRY', detectedValue: extFields.best_before_or_expiry, required: true, status: 'PASS', confidence: 95, ruleReference: 'Rule 6(1)(d)', boundingBox: [10, 40, 40, 8], measuredFontHeightMm: measuredFont, requiredFontHeightMm: reqFont });
-        }
+        const hasBestBefore = extFields.best_before_or_expiry && extFields.best_before_or_expiry !== 'N/A';
+        decls.push({ 
+          declaration: 'BEST BEFORE / EXPIRY', 
+          detectedValue: hasBestBefore ? extFields.best_before_or_expiry : 'Not Detected on Scanned Surfaces', 
+          required: true, 
+          status: hasBestBefore ? 'PASS' : 'FAIL', 
+          confidence: hasBestBefore ? 95 : 40, 
+          ruleReference: 'Rule 6(1)(d)', 
+          boundingBox: [10, 40, 40, 8], 
+          measuredFontHeightMm: measuredFont, 
+          requiredFontHeightMm: reqFont 
+        });
 
         const failCount = decls.filter(d => d.status === 'FAIL').length;
         const warnCount = decls.filter(d => d.status === 'WARNING').length;
@@ -1183,7 +1194,8 @@ function App() {
       countryOfOrigin: findDecl('Country of Origin') || 'India',
       manufacturer: findDecl('Manufacturer') || activeInspection.manufacturer || '',
       consumerCare: findDecl('Consumer Care') || '',
-      dateOfPackaging: findDecl('Date of Packaging') || findDecl('Date') || ''
+      dateOfPackaging: findDecl('Date of Packaging') || findDecl('Date') || '',
+      bestBefore: findDecl('Best Before') || findDecl('Expiry') || ''
     });
     setShowEditDeclarationsModal(true);
   };
@@ -1233,6 +1245,13 @@ function App() {
           ...decl,
           detectedValue: editFormData.dateOfPackaging || decl.detectedValue,
           status: (editFormData.dateOfPackaging && editFormData.dateOfPackaging !== 'N/A' && editFormData.dateOfPackaging.trim().length > 1 ? 'PASS' : decl.status) as any
+        };
+      }
+      if (lower.includes('best before') || lower.includes('expiry')) {
+        return {
+          ...decl,
+          detectedValue: editFormData.bestBefore || decl.detectedValue,
+          status: (editFormData.bestBefore && editFormData.bestBefore !== 'N/A' && editFormData.bestBefore.trim().length > 1 ? 'PASS' : decl.status) as any
         };
       }
       return decl;
@@ -5909,6 +5928,17 @@ function App() {
                         className="w-full text-xs p-2.5 border border-slate-300 rounded focus:border-amber-500 focus:outline-none font-mono"
                         placeholder="e.g. 05/2026 or May 2026"
                       />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Best Before / Expiry Date</label>
+                      <input 
+                        type="text"
+                        value={editFormData.bestBefore}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, bestBefore: e.target.value }))}
+                        className="w-full text-xs p-2.5 border border-slate-300 rounded focus:border-amber-500 focus:outline-none font-mono"
+                        placeholder="e.g. Best before 9 months from packaging or 12/2026"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-0.5 block">Rule 6(1)(d): Month & year or relative validity</span>
                     </div>
                   </div>
 
