@@ -97,16 +97,29 @@ class DeclarationService:
                         
         return extracted
 
-    def extract_declarations_llm(self, image_path: str, ocr_results: list) -> list:
+    def extract_declarations_llm(
+        self, 
+        image_path: str, 
+        ocr_results: list,
+        commodity_category: Optional[str] = None,
+        original_filename: Optional[str] = None,
+        api_key: Optional[str] = None
+    ) -> tuple:
         """
-        Invokes Gemini multimodal LLM for extraction of the 8 mandatory fields,
+        Invokes Gemini multimodal LLM for extraction of the mandatory fields,
         and matches them with physical OCR coordinates if available.
         """
         import os
+        from app.core.config import settings
         from app.services.llm_service import llm_service
         
-        api_key = os.getenv("GEMINI_API_KEY")
-        extracted_fields = llm_service.analyze_label_image(image_path, api_key)
+        effective_key = api_key or settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY")
+        extracted_fields = llm_service.analyze_label_image(
+            image_path=image_path, 
+            api_key=effective_key,
+            commodity_category=commodity_category,
+            original_filename=original_filename
+        )
         
         decls = []
         

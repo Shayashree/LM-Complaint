@@ -10,8 +10,11 @@ class LocalStorageProvider:
         os.makedirs(settings.REPORT_DIR, exist_ok=True)
 
     def save_file(self, file: UploadFile, subfolder: str = "") -> str:
+        import re
         ext = os.path.splitext(file.filename)[1] if file.filename else ".png"
-        filename = f"{uuid.uuid4()}{ext}"
+        raw_base = os.path.splitext(file.filename)[0] if file.filename else "pack"
+        clean_base = re.sub(r'[^a-zA-Z0-9_-]', '_', raw_base)[:30]
+        filename = f"{clean_base}_{uuid.uuid4().hex[:6]}{ext}"
         
         target_dir = os.path.join(settings.UPLOAD_DIR, subfolder)
         os.makedirs(target_dir, exist_ok=True)

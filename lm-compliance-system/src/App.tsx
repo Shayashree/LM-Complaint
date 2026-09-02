@@ -377,8 +377,10 @@ function App() {
   const [inspectionFilterStatus, setInspectionFilterStatus] = useState<string>('All');
   
   // Scan & Processing Simulation States
-  const [scanFiles, setScanFiles] = useState<{ name: string; side: string; size: string; file?: File }[]>([]);
-  const [, setSelectedProductIdForScan] = useState<string>('LM-2026-00122'); // Surf Excel defaults
+  const [scanFiles, setScanFiles] = useState<{ name: string; side: string; size: string; file?: File; previewUrl?: string }[]>([]);
+  const [geminiApiKey, setGeminiApiKey] = useState<string>(() => localStorage.getItem('gemini_api_key') || '');
+  const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
+  const [, setSelectedProductIdForScan] = useState<string>('LM-2026-00122');
   const [, setScanImageQuality] = useState<'Excellent' | 'Good' | 'Poor'>('Good');
   const [scanningProgress, setScanningProgress] = useState(0);
   const [scanningStatusIndex, setScanningStatusIndex] = useState(0);
@@ -467,7 +469,8 @@ function App() {
       const sizeStr = file.size > 1024 * 1024 
         ? (file.size / (1024 * 1024)).toFixed(1) + " MB"
         : (file.size / 1024).toFixed(0) + " KB";
-      setScanFiles([{ name: file.name, file: file, side: "Front Label", size: sizeStr }]);
+      const previewUrl = URL.createObjectURL(file);
+      setScanFiles([{ name: file.name, file: file, side: "Front Label", size: sizeStr, previewUrl }]);
       triggerToast(`Selected file: ${file.name}`);
     }
   };
@@ -639,6 +642,9 @@ function App() {
           if (scanCaliperOverride) {
             formData.append('caliper_override_mm', String(scanCaliperOverride));
           }
+          if (geminiApiKey) {
+            formData.append('gemini_api_key', geminiApiKey);
+          }
 
           const sendData = async (fileObj: File) => {
             formData.append('file', fileObj);
@@ -676,6 +682,9 @@ function App() {
             if (scanRes.ok) {
               const liveInspection = await scanRes.json();
               const mapped = mapBackendInspection(liveInspection);
+              if (scanFileItem.previewUrl) {
+                mapped.imageEvidenceUrl = scanFileItem.previewUrl;
+              }
               
               setInspections(prev => {
                 const exists = prev.some(i => i.id === mapped.id);
@@ -1947,6 +1956,54 @@ function App() {
                         </select>
                       </div>
 
+                      {/* AI Multimodal Vision Status & API Key Toggle */}
+                      <div className="pt-2.5 border-t border-slate-100 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-bold text-slate-700 uppercase flex items-center space-x-1">
+                            <span className={`w-2 h-2 rounded-full ${geminiApiKey ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'} inline-block mr-1`}></span>
+                            <span>Vision Engine</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+                            className="text-[9px] text-amber-600 hover:text-amber-700 font-semibold underline"
+                          >
+                            {geminiApiKey ? '🔑 Key Connected' : '⚙️ Add Gemini API Key'}
+                          </button>
+                        </div>
+                        {showApiKeyInput ? (
+                          <div className="p-2 bg-amber-50 rounded border border-amber-200 space-y-1.5 mt-1">
+                            <div className="text-[9px] text-amber-900 leading-tight">
+                              Paste your free <b>Google AI Studio API Key</b> to run live Gemini 1.5 Flash Vision on any uploaded packaging image:
+                            </div>
+                            <div className="flex space-x-1">
+                              <input
+                                type="password"
+                                placeholder="AIzaSy..."
+                                value={geminiApiKey}
+                                onChange={(e) => setGeminiApiKey(e.target.value)}
+                                className="flex-1 text-[10px] p-1.5 border border-amber-300 rounded bg-white text-slate-800 font-mono"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  localStorage.setItem('gemini_api_key', geminiApiKey);
+                                  setShowApiKeyInput(false);
+                                  triggerToast(geminiApiKey ? "Gemini Vision API Key saved!" : "Key cleared. Using smart local category engine.");
+                                }}
+                                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-[9px]"
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[9px] text-slate-500 leading-tight">
+                            {geminiApiKey ? '🟢 Live Multimodal Vision Active — Reading all printed declarations directly.' : '💡 Dynamic Category Mode Active — Tailors declarations to each uploaded image and commodity type.'}
+                          </p>
+                        )}
+                      </div>
+
                       {/* Gap #2: Font-Size Calibration Mechanism */}
                       <div className="pt-2.5 border-t border-slate-100 space-y-2">
                         <label className="block text-[10px] font-bold text-slate-700 uppercase flex items-center justify-between">
@@ -2050,7 +2107,8 @@ function App() {
                                   canvas.toBlob((blob) => {
                                     if (blob) {
                                       const file = new File([blob], "captured_pack_label.jpg", { type: "image/jpeg" });
-                                      setScanFiles([{ name: file.name, file: file, side: "Live Camera Capture", size: `${canvas.width} x ${canvas.height}` }]);
+                                      const previewUrl = URL.createObjectURL(blob);
+                                      setScanFiles([{ name: file.name, file: file, side: "Live Camera Capture", size: `${canvas.width} x ${canvas.height}`, previewUrl }]);
                                       triggerToast("Photo captured successfully!");
                                     }
                                   }, 'image/jpeg');
@@ -2394,8 +2452,14 @@ function App() {
                     <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-1.5">SKU Metadata</h3>
                     
                     <div className="h-44 border bg-slate-50 rounded overflow-hidden flex items-center justify-center">
-                      {/* Embed our custom SVG mock package */}
-                      <ProductImageSVG productId={activeInspection.id} showAllBoxes={false} zoom={0.8} />
+                      {/* Embed our custom SVG mock package or uploaded photo */}
+                      <ProductImageSVG 
+                        productId={activeInspection.id} 
+                        showAllBoxes={false} 
+                        zoom={0.8} 
+                        imageUrl={activeInspection.imageEvidenceUrl || scanFiles[0]?.previewUrl}
+                        declarations={activeInspection.declarations}
+                      />
                     </div>
 
                     <div className="space-y-1.5 text-[10px] text-slate-650 pt-1.5">
@@ -2619,6 +2683,8 @@ function App() {
                         rotation={imgRotation}
                         panX={imgPanX}
                         panY={imgPanY}
+                        imageUrl={activeInspection.imageEvidenceUrl || scanFiles[0]?.previewUrl}
+                        declarations={activeInspection.declarations}
                       />
                     </div>
 
@@ -3843,13 +3909,25 @@ function App() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="border bg-slate-50 p-2 rounded flex flex-col items-center">
                         <div className="w-full h-32 flex items-center justify-center overflow-hidden">
-                          <ProductImageSVG productId={activeInspection.id} showAllBoxes={false} zoom={0.65} />
+                          <ProductImageSVG 
+                            productId={activeInspection.id} 
+                            showAllBoxes={false} 
+                            zoom={0.65} 
+                            imageUrl={activeInspection.imageEvidenceUrl || scanFiles[0]?.previewUrl}
+                            declarations={activeInspection.declarations}
+                          />
                         </div>
                         <span className="text-[9px] text-slate-500 mt-1 font-sans">Figure A: Captured Front Label</span>
                       </div>
                       <div className="border bg-slate-50 p-2 rounded flex flex-col items-center">
                         <div className="w-full h-32 flex items-center justify-center overflow-hidden">
-                          <ProductImageSVG productId={activeInspection.id} showAllBoxes={true} zoom={0.65} />
+                          <ProductImageSVG 
+                            productId={activeInspection.id} 
+                            showAllBoxes={true} 
+                            zoom={0.65} 
+                            imageUrl={activeInspection.imageEvidenceUrl || scanFiles[0]?.previewUrl}
+                            declarations={activeInspection.declarations}
+                          />
                         </div>
                         <span className="text-[9px] text-slate-500 mt-1 font-sans">Figure B: Neural Segmentation Overlays</span>
                       </div>

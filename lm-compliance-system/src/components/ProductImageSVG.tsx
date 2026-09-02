@@ -8,6 +8,12 @@ interface ProductImageSVGProps {
   rotation?: number;
   panX?: number;
   panY?: number;
+  imageUrl?: string;
+  declarations?: Array<{
+    declaration: string;
+    boundingBox?: [number, number, number, number];
+    status?: string;
+  }>;
 }
 
 export const ProductImageSVG: React.FC<ProductImageSVGProps> = ({
@@ -17,10 +23,12 @@ export const ProductImageSVG: React.FC<ProductImageSVGProps> = ({
   zoom = 1,
   rotation = 0,
   panX = 0,
-  panY = 0
+  panY = 0,
+  imageUrl,
+  declarations
 }) => {
   // Define bounding boxes in percentages [x, y, w, h]
-  const boxes: Record<string, Record<string, { rect: [number, number, number, number]; label: string; color: string }>> = {
+  const defaultBoxes: Record<string, Record<string, { rect: [number, number, number, number]; label: string; color: string }>> = {
     "LM-2026-00121": { // Parle-G
       "Product Name": { rect: [10, 35, 80, 15], label: "NAME", color: "border-green-500 bg-green-500/10 text-green-700" },
       "Net Quantity": { rect: [10, 60, 35, 10], label: "NET QTY", color: "border-green-500 bg-green-500/10 text-green-700" },
@@ -47,7 +55,29 @@ export const ProductImageSVG: React.FC<ProductImageSVGProps> = ({
     }
   };
 
-  const activeBoxes = boxes[productId] || {};
+  let activeBoxes = defaultBoxes[productId] || defaultBoxes["LM-2026-00122"] || {};
+  if (declarations && declarations.length > 0) {
+    const dynamicBoxes: Record<string, { rect: [number, number, number, number]; label: string; color: string }> = {};
+    declarations.forEach((d) => {
+      if (d.boundingBox && Array.isArray(d.boundingBox)) {
+        const isFail = d.status === 'FAIL';
+        const isWarn = d.status === 'WARNING';
+        const color = isFail 
+          ? 'border-red-500 bg-red-500/10 text-red-700' 
+          : isWarn 
+          ? 'border-amber-500 bg-amber-500/10 text-amber-700' 
+          : 'border-emerald-500 bg-emerald-500/10 text-emerald-700';
+        dynamicBoxes[d.declaration] = {
+          rect: d.boundingBox,
+          label: isFail ? `${d.declaration} (VIOLATION)` : d.declaration,
+          color
+        };
+      }
+    });
+    if (Object.keys(dynamicBoxes).length > 0) {
+      activeBoxes = dynamicBoxes;
+    }
+  }
 
   const renderSVGContent = () => {
     switch (productId) {
@@ -224,17 +254,32 @@ export const ProductImageSVG: React.FC<ProductImageSVGProps> = ({
     }
   };
 
+  const renderVisualContent = () => {
+    if (imageUrl) {
+      return (
+        <div className="w-full h-full flex items-center justify-center relative select-none overflow-hidden bg-slate-950/80 rounded border border-slate-700">
+          <img 
+            src={imageUrl} 
+            alt="Uploaded Packaging Label" 
+            className="w-full h-full object-contain pointer-events-none rounded" 
+          />
+        </div>
+      );
+    }
+    return renderSVGContent();
+  };
+
   return (
     <div className="relative overflow-hidden w-full h-full flex items-center justify-center bg-slate-900 rounded-lg shadow-inner" style={{ minHeight: '380px' }}>
       <div
-        className="transition-transform duration-200 ease-out"
+        className="transition-transform duration-200 ease-out relative"
         style={{
           transform: `scale(${zoom}) rotate(${rotation}deg) translate(${panX}px, ${panY}px)`,
           width: '320px',
           height: '400px'
         }}
       >
-        {renderSVGContent()}
+        {renderVisualContent()}
 
         {/* Bounding Boxes overlay */}
         {Object.entries(activeBoxes).map(([key, value]) => {

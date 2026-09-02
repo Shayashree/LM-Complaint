@@ -1,7 +1,10 @@
 import json
-from typing import List, Union
+from typing import List, Union, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -24,6 +27,7 @@ class Settings(BaseSettings):
     
     OCR_PROVIDER: str = "mock"  # 'paddleocr' or 'mock'
     STORAGE_PROVIDER: str = "local"  # 'local'
+    GEMINI_API_KEY: Optional[str] = None
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

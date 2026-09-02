@@ -44,6 +44,7 @@ def create_inspection(
     pdp_width_mm: Optional[float] = Form(None),
     pdp_height_mm: Optional[float] = Form(None),
     caliper_override_mm: Optional[float] = Form(None),
+    gemini_api_key: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(PermissionChecker(["INSPECTOR"]))
 ):
@@ -121,7 +122,13 @@ def create_inspection(
     db.flush()
 
     # Extract structured fields and category classification
-    decls, detected_category = declaration_service.extract_declarations_llm(processed_path, ocr_out)
+    decls, detected_category = declaration_service.extract_declarations_llm(
+        processed_path, 
+        ocr_out,
+        commodity_category=commodity_category,
+        original_filename=file.filename,
+        api_key=gemini_api_key
+    )
     if not commodity_category and detected_category:
         inspection.commodity_category = detected_category
 
