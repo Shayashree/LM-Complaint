@@ -38,6 +38,15 @@ temp/
 *.sln
 *.swp
 
+# Environment and secrets
+.env
+*.env
+backend/.env
+
+# Generated reports
+backend/reports/*.pdf
+*.pdf
+
 # OS Files
 .DS_Store
 Thumbs.db

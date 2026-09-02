@@ -19,13 +19,24 @@ class ComplianceEngine:
         # Query all active rules
         rules = db.query(Rule).filter(Rule.status == "Active").all()
         
-        # Evaluate using rule engine
-        results = rule_engine.evaluate_rules(rules, inspection.declarations, inspection.product)
+        # Evaluate using rule engine with commodity profile & calibration
+        results = rule_engine.evaluate_rules(
+            rules=rules, 
+            declarations=inspection.declarations, 
+            product=inspection.product,
+            commodity_category=inspection.commodity_category or "GENERAL",
+            pdp_width_mm=inspection.pdp_width_mm,
+            pdp_height_mm=inspection.pdp_height_mm,
+            pdp_area_cm2=inspection.pdp_area_cm2,
+            calibration_scale_ppm=inspection.calibration_scale_ppm,
+            caliper_override_mm=inspection.caliper_override_mm
+        )
 
         # Store Compliance Checks & find potential violations
         has_fail = False
         has_review = False
         violations_count = 0
+        measured_font_heights = []
         
         for res in results:
             check = ComplianceCheck(
@@ -35,9 +46,13 @@ class ComplianceEngine:
                 field=res["field"],
                 status=res["status"],
                 confidence=res["confidence"],
-                message=res["message"]
+                message=res["message"],
+                measured_font_height_mm=res.get("measured_font_height_mm"),
+                required_font_height_mm=res.get("required_font_height_mm")
             )
             db.add(check)
+            if res.get("measured_font_height_mm"):
+                measured_font_heights.append(res["measured_font_height_mm"])
             
             if res["status"] in ["FAIL", "REVIEW"]:
                 if res["status"] == "FAIL":
@@ -86,7 +101,11 @@ class ComplianceEngine:
 
         # Update inspection
         inspection.overall_status = overall_status
-        inspection.violationsCount = violations_count # Match model field spelling or mapping
+        inspection.violationsCount = violations_count
+        if measured_font_heights:
+            inspection.calibrated_font_height_mm = measured_font_heights[0]
+        if inspection.pdp_width_mm and inspection.pdp_height_mm:
+            inspection.pdp_area_cm2 = round((float(inspection.pdp_width_mm) * float(inspection.pdp_height_mm)) / 100.0, 1)
         
         # Calculate overall confidence
         confs = [d.confidence for d in inspection.declarations]

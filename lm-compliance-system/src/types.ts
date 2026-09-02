@@ -10,6 +10,8 @@ export interface DeclarationCheck {
   confidence: number;
   ruleReference: string;
   boundingBox?: [number, number, number, number]; // [x, y, w, h] in percentages
+  measuredFontHeightMm?: number;
+  requiredFontHeightMm?: number;
 }
 
 export interface Inspection {
@@ -37,6 +39,15 @@ export interface Inspection {
   verifiedBy?: string;
   verifiedDate?: string;
   imageEvidenceUrl?: string; // We will use SVG drawings or styled canvas placeholders
+  reportId?: number;
+  commodityCategory?: string;
+  pdpWidthMm?: number;
+  pdpHeightMm?: number;
+  pdpAreaCm2?: number;
+  calibrationMethod?: 'MANUAL_PDP' | 'REFERENCE_CARD' | 'AUTO_HEURISTIC';
+  calibrationScalePpm?: number;
+  calibratedFontHeightMm?: number;
+  caliperOverrideMm?: number;
 }
 
 export interface Rule {

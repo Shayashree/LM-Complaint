@@ -124,8 +124,8 @@ export const ProductImageSVG: React.FC<ProductImageSVGProps> = ({
             <path d="M 200 130 L 225 85 L 255 120 L 300 90 L 280 140 L 330 165 L 275 185 L 290 240 L 235 200 L 220 255 L 190 195 L 145 225 L 170 170 L 120 145 L 170 125 Z" fill="#facc15" />
 
             {/* Product Name */}
-            <text x="200" y="80" fill="#ffffff" fontFamily="sans-serif" fontSize="38" fontWeight="black" textAnchor="middle" filter="drop-shadow(2px 4px 4px rgba(0,0,0,0.5))">Surf Excel</text>
-            <text x="200" y="105" fill="#4ade80" fontFamily="sans-serif" fontSize="16" fontWeight="bold" textAnchor="middle" letterSpacing="2">EASY WASH</text>
+            <text x="200" y="80" fill="#ffffff" fontFamily="sans-serif" fontSize="34" fontWeight="black" textAnchor="middle" filter="drop-shadow(2px 4px 4px rgba(0,0,0,0.5))">Product Scan</text>
+            <text x="200" y="105" fill="#4ade80" fontFamily="sans-serif" fontSize="15" fontWeight="bold" textAnchor="middle" letterSpacing="2">PACKAGED COMMODITY</text>
 
             {/* Detergent flow graphic */}
             <ellipse cx="200" cy="210" rx="55" ry="12" fill="#ffffff" opacity="0.3" />

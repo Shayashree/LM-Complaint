@@ -176,6 +176,8 @@ class ComplianceCheckResponse(BaseModel):
     status: str
     confidence: float
     message: Optional[str] = None
+    measured_font_height_mm: Optional[float] = None
+    required_font_height_mm: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -211,6 +213,20 @@ class ViolationResponse(BaseModel):
     created_at: datetime
     rule: RuleResponse
     evidence: List[ViolationEvidenceResponse] = []
+
+    class Config:
+        from_attributes = True
+
+# ==========================================
+# REPORT SCHEMAS
+# ==========================================
+class ReportResponse(BaseModel):
+    id: int
+    inspection_id: str
+    generated_by_id: Optional[int] = None
+    storage_path: str
+    rule_version_used: Optional[str] = None
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -259,12 +275,23 @@ class InspectionResponse(BaseModel):
     supervisor_date: Optional[datetime] = None
     created_at: datetime
     
+    # Category and Calibration Fields
+    commodity_category: Optional[str] = "GENERAL"
+    pdp_width_mm: Optional[float] = None
+    pdp_height_mm: Optional[float] = None
+    pdp_area_cm2: Optional[float] = None
+    calibration_method: Optional[str] = "AUTO_HEURISTIC"
+    calibration_scale_ppm: Optional[float] = None
+    calibrated_font_height_mm: Optional[float] = None
+    caliper_override_mm: Optional[float] = None
+
     product: Optional[ProductResponse] = None
     images: List[InspectionImageResponse] = []
     declarations: List[ExtractedDeclarationResponse] = []
     compliance_checks: List[ComplianceCheckResponse] = []
     violations: List[ViolationResponse] = []
     comments: List[InspectionCommentResponse] = []
+    reports: List[ReportResponse] = []
 
     class Config:
         from_attributes = True
@@ -272,28 +299,20 @@ class InspectionResponse(BaseModel):
 class InspectionCreate(BaseModel):
     product_id: Optional[int] = None
     officer_remarks: Optional[str] = None
+    commodity_category: Optional[str] = None
+    pdp_width_mm: Optional[float] = None
+    pdp_height_mm: Optional[float] = None
+    calibration_method: Optional[str] = None
 
 class InspectionVerifyRequest(BaseModel):
     decision: str # CONFIRM, MARK_COMPLIANT, SEND_FOR_MANUAL_REVIEW, REQUEST_REINSPECTION
     remarks: str
+    caliper_override_mm: Optional[float] = None
+    commodity_category_override: Optional[str] = None
 
 class SupervisorReviewRequest(BaseModel):
     decision: str # APPROVE, REJECT, REQUEST_REINSPECTION
     remarks: str
-
-# ==========================================
-# REPORT SCHEMAS
-# ==========================================
-class ReportResponse(BaseModel):
-    id: int
-    inspection_id: str
-    generated_by_id: Optional[int] = None
-    storage_path: str
-    rule_version_used: Optional[str] = None
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 # ==========================================
 # DASHBOARD SCHEMAS

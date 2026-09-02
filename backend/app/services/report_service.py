@@ -62,54 +62,83 @@ class ReportService:
         )
 
         # Header
-        story.append(Paragraph("GOVERNMENT OF INDIA", title_style))
-        story.append(Paragraph("DIRECTORATE OF LEGAL METROLOGY", title_style))
-        story.append(Paragraph("COMPLIANCE SCREENING REPORT under PC Rules, 2011", title_style))
+        story.append(Paragraph("LM-ComplianceAuditor System", title_style))
+        story.append(Paragraph("System-Generated Compliance Report — Prototype for SIH 2026", title_style))
+        story.append(Paragraph("Automated Legal Metrology Packaging Inspection Report", sub_style))
         story.append(Paragraph(f"Inspection ID: {inspection_id} | Date: {inspection.date}", sub_style))
         story.append(Spacer(1, 10))
 
         # Section 1: Metadata
-        story.append(Paragraph("1. PACKAGED COMMODITY METADATA", h2_style))
+        story.append(Paragraph("1. PACKAGED COMMODITY METADATA & RULE 6 DECLARATIONS", h2_style))
         prod = inspection.product
+
+        def get_decl(name, default="N/A"):
+            d = next((x for x in inspection.declarations if x.field_name == name), None)
+            return d.value if d and d.value else default
+
+        prod_name = (prod.product_name if prod and prod.product_name else None) or get_decl("product_name")
+        brand_val = (prod.brand if prod and prod.brand else None) or get_decl("brand")
+        mfg_val = (prod.manufacturer if prod and prod.manufacturer else None) or get_decl("manufacturer")
+        net_qty = (prod.net_quantity if prod and prod.net_quantity else None) or get_decl("net_quantity")
+        mrp_val = (prod.mrp if prod and prod.mrp else None) or get_decl("mrp")
+        mfg_date = (prod.manufacturing_date if prod and prod.manufacturing_date else None) or get_decl("manufacturing_date")
+        consumer_care = (prod.consumer_care if prod and prod.consumer_care else None) or get_decl("consumer_care")
+        unit_price = get_decl("unit_sale_price")
+        country_origin = get_decl("country_of_origin")
+
         prod_data = [
-            ["Field", "Value"],
-            ["Product Name", prod.product_name if prod else "N/A"],
-            ["Brand", prod.brand if prod else "N/A"],
-            ["Manufacturer", prod.manufacturer if prod else "N/A"],
-            ["Net Quantity", inspection.product.net_quantity if prod else "N/A"],
-            ["MRP", inspection.product.mrp if prod else "N/A"]
+            ["Declaration Parameter", "Detected / Declared Value"],
+            ["Commodity Classification", Paragraph(f"<b>{inspection.commodity_category or 'GENERAL'}</b> (Category Rule Profile Applied)", normal_style)],
+            ["Commodity / Generic Name", Paragraph(prod_name, normal_style)],
+            ["Brand", Paragraph(brand_val, normal_style)],
+            ["Manufacturer / Packer", Paragraph(mfg_val, normal_style)],
+            ["Declared Net Quantity", Paragraph(net_qty, normal_style)],
+            ["Maximum Retail Price (MRP)", Paragraph(mrp_val, normal_style)],
+            ["Date of Mfg / Packing", Paragraph(mfg_date, normal_style)],
+            ["Consumer Helpline Details", Paragraph(consumer_care, normal_style)],
+            ["Unit Sale Price (USP)", Paragraph(unit_price, normal_style)],
+            ["Country of Origin", Paragraph(country_origin, normal_style)],
+            ["Principal Display Panel (PDP)", Paragraph(f"<b>{inspection.pdp_area_cm2 or 250.0} cm²</b> | Calibration: {inspection.calibration_method or 'AUTO_HEURISTIC'}", normal_style)],
+            ["Certified Numeral Height", Paragraph(f"<b>{inspection.caliper_override_mm or inspection.calibrated_font_height_mm or 2.5} mm</b>" + (" (Vernier Caliper Certified)" if inspection.caliper_override_mm else " (Optical Bounding Box)"), normal_style)]
         ]
-        t1 = Table(prod_data, colWidths=[150, 350])
+        t1 = Table(prod_data, colWidths=[160, 340])
         t1.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (1,0), colors.HexColor("#0b2240")),
             ('TEXTCOLOR', (0,0), (1,0), colors.white),
             ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
             ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-            ('FONTSIZE', (0,0), (-1,-1), 9)
+            ('FONTSIZE', (0,0), (-1,-1), 8)
         ]))
         story.append(t1)
         story.append(Spacer(1, 15))
 
         # Section 2: AI Compliance Checks
-        story.append(Paragraph("2. AI SCREENING CHECKS", h2_style))
-        checks_data = [["Rule Reference", "Field Checked", "AI Status", "Details"]]
+        story.append(Paragraph("2. STATUTORY SCREENING CHECKS & RULE COMPLIANCE", h2_style))
+        checks_data = [["Rule Reference", "Field", "Status", "Measured / Req.", "Compliance Details"]]
         for check in inspection.compliance_checks:
+            rule_title = check.rule.title if check.rule else "General"
+            meas_str = f"{check.measured_font_height_mm} mm (Req: >={check.required_font_height_mm} mm)" if check.measured_font_height_mm else "N/A"
             checks_data.append([
-                check.rule.title if check.rule else "General",
-                check.field or "N/A",
-                check.status,
-                check.message or ""
+                Paragraph(rule_title, normal_style),
+                Paragraph(check.field or "N/A", normal_style),
+                Paragraph(check.status, normal_style),
+                Paragraph(meas_str, normal_style),
+                Paragraph(check.message or "", normal_style)
             ])
-        t2 = Table(checks_data, colWidths=[130, 80, 70, 220])
+        t2 = Table(checks_data, colWidths=[120, 65, 55, 100, 160])
         t2.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0b2240")),
             ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
             ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
             ('FONTSIZE', (0,0), (-1,-1), 8),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 4)
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+            ('TOPPADDING', (0,0), (-1,-1), 3)
         ]))
         story.append(t2)
         story.append(Spacer(1, 15))
@@ -144,14 +173,19 @@ class ReportService:
         # Build PDF
         doc.build(story)
 
-        # Log PDF Generation to reports database table
-        report = Report(
-            inspection_id=inspection_id,
-            generated_by_id=officer_id,
-            storage_path=pdf_path,
-            rule_version_used="1.0"
-        )
-        db.add(report)
+        # Log PDF Generation to reports database table (update if exists)
+        report = db.query(Report).filter(Report.inspection_id == inspection_id).first()
+        if report:
+            report.storage_path = pdf_path
+            report.created_at = datetime.utcnow()
+        else:
+            report = Report(
+                inspection_id=inspection_id,
+                generated_by_id=officer_id,
+                storage_path=pdf_path,
+                rule_version_used="1.0"
+            )
+            db.add(report)
 
         # Log system audit action
         audit = AuditLog(
@@ -197,8 +231,8 @@ class ReportService:
             name="H2Style", parent=styles["Heading2"], fontSize=12, textColor=colors.HexColor("#0b2240"), spaceBefore=15, spaceAfter=8
         )
 
-        story.append(Paragraph("LEGAL METROLOGY COMPLIANCE ANALYTICS REPORT", title_style))
-        story.append(Paragraph(f"Compiled on {datetime.now().strftime('%d %B %Y %H:%M:%S')} | Enforcement HQ", sub_style))
+        story.append(Paragraph("LM-ComplianceAuditor Analytics Report", title_style))
+        story.append(Paragraph(f"Compiled on {datetime.now().strftime('%d %B %Y %H:%M:%S')} | LM-ComplianceAuditor System (SIH 2026 Prototype)", sub_style))
 
         # KPI Summary table
         kpi_data = [

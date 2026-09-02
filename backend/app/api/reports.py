@@ -14,7 +14,7 @@ router = APIRouter(prefix="/reports", tags=["Reports Archive"])
 def generate_inspection_report(
     inspection_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(PermissionChecker(["INSPECTOR"]))
+    current_user: User = Depends(PermissionChecker(["INSPECTOR", "SUPERVISOR", "AUDITOR", "ANALYST", "DEPT_ADMIN", "SUPER_ADMIN"]))
 ):
     try:
         pdf_path = report_service.generate_compliance_report(db, inspection_id, current_user.id)
@@ -40,7 +40,7 @@ def get_report_metadata(
 def download_pdf_report(
     id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(PermissionChecker(["INSPECTOR", "SUPERVISOR", "AUDITOR"]))
+    current_user: User = Depends(PermissionChecker(["INSPECTOR", "SUPERVISOR", "AUDITOR", "ANALYST", "DEPT_ADMIN", "SUPER_ADMIN", "CONSUMER"]))
 ):
     report = db.query(Report).filter(Report.id == id).first()
     if not report:
@@ -48,10 +48,15 @@ def download_pdf_report(
         
     normalized_path = report.storage_path.replace("/", os.sep)
     if not os.path.exists(normalized_path):
-        raise HTTPException(
-            status_code=status.HTTP_410_GONE,
-            detail="The requested PDF report document file was deleted from system storage."
-        )
+        # Auto-regenerate on demand if deleted
+        try:
+            new_path = report_service.generate_compliance_report(db, report.inspection_id, current_user.id)
+            normalized_path = new_path.replace("/", os.sep)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_410_GONE,
+                detail="The requested PDF report document file was deleted from system storage."
+            )
         
     return FileResponse(
         path=normalized_path,

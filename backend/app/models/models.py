@@ -99,6 +99,16 @@ class Inspection(Base):
     supervisor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     supervisor_date = Column(DateTime, nullable=True)
     
+    # Commodity Category & Calibration Fields
+    commodity_category = Column(String(50), default="GENERAL") # FOOD_PERISHABLE, COSMETICS, ELECTRONICS, TEXTILE, MULTI_PIECE, GENERAL
+    pdp_width_mm = Column(Float, nullable=True) # Calibrated PDP Width in mm
+    pdp_height_mm = Column(Float, nullable=True) # Calibrated PDP Height in mm
+    pdp_area_cm2 = Column(Float, nullable=True) # Principal Display Panel Area in cm2
+    calibration_method = Column(String(50), default="AUTO_HEURISTIC") # MANUAL_PDP, REFERENCE_CARD, AUTO_HEURISTIC
+    calibration_scale_ppm = Column(Float, nullable=True) # Scale in Pixels Per mm
+    calibrated_font_height_mm = Column(Float, nullable=True) # Measured physical font height in mm
+    caliper_override_mm = Column(Float, nullable=True) # Officer physical vernier caliper override in mm
+    
     created_at = Column(DateTime, default=datetime.utcnow)
 
     product = relationship("Product", back_populates="inspections")
@@ -195,10 +205,16 @@ class ComplianceCheck(Base):
     status = Column(String(30), default="REVIEW") # PASS, FAIL, REVIEW, NOT_APPLICABLE
     confidence = Column(Float, default=1.0)
     message = Column(String(500))
+    measured_font_height_mm = Column(Float, nullable=True)
+    required_font_height_mm = Column(Float, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     inspection = relationship("Inspection", back_populates="compliance_checks")
     rule = relationship("Rule")
+
+    @property
+    def rule_code(self) -> str:
+        return self.rule.rule_code if self.rule else "N/A"
 
 class Violation(Base):
     __tablename__ = "violations"

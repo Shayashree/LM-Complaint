@@ -15,6 +15,7 @@ from app.services.image_service import image_service
 from app.services.ocr_service import ocr_service
 from app.services.declaration_service import declaration_service
 from app.services.compliance_engine import compliance_engine
+from app.services.report_service import report_service
 from datetime import datetime
 import uuid
 
@@ -38,6 +39,11 @@ def create_inspection(
     product_id: Optional[int] = Form(None),
     image_side: str = Form("front"),
     file: UploadFile = File(...),
+    commodity_category: Optional[str] = Form(None),
+    calibration_method: Optional[str] = Form("AUTO_HEURISTIC"),
+    pdp_width_mm: Optional[float] = Form(None),
+    pdp_height_mm: Optional[float] = Form(None),
+    caliper_override_mm: Optional[float] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(PermissionChecker(["INSPECTOR"]))
 ):
@@ -54,7 +60,16 @@ def create_inspection(
     processed_path = image_service.preprocess_image(storage_path)
     assessment = image_service.estimate_readability(storage_path)
 
-    # 3. Create inspection record
+    # 3. Calculate Calibrated Scale & PDP Area
+    pdp_area = round((float(pdp_width_mm) * float(pdp_height_mm)) / 100.0, 1) if (pdp_width_mm and pdp_height_mm) else None
+    calibration_scale_ppm = None
+    if calibration_method == "REFERENCE_CARD":
+        # Standard ID-1 ISO Card is 85.60 mm wide. Default calibrated optical ratio
+        calibration_scale_ppm = 4.82
+    elif pdp_height_mm and pdp_height_mm > 0:
+        calibration_scale_ppm = round(800.0 / float(pdp_height_mm), 2)
+
+    # Create inspection record
     inspection_id = f"LM-2026-{uuid.uuid4().hex[:5].upper()}"
     inspection = Inspection(
         id=inspection_id,
@@ -64,7 +79,14 @@ def create_inspection(
         overall_status="MANUAL_REVIEW",
         image_quality=assessment["readability_status"],
         verification_status="Pending",
-        supervisor_status="Pending"
+        supervisor_status="Pending",
+        commodity_category=commodity_category or "GENERAL",
+        calibration_method=calibration_method or "AUTO_HEURISTIC",
+        pdp_width_mm=pdp_width_mm,
+        pdp_height_mm=pdp_height_mm,
+        pdp_area_cm2=pdp_area,
+        calibration_scale_ppm=calibration_scale_ppm,
+        caliper_override_mm=caliper_override_mm
     )
     db.add(inspection)
     db.flush()
@@ -98,8 +120,11 @@ def create_inspection(
     avg_conf = round(total_conf / len(ocr_out), 2) if ocr_out else 1.0
     db.flush()
 
-    # Extract structured fields
-    decls = declaration_service.extract_declarations(ocr_out)
+    # Extract structured fields and category classification
+    decls, detected_category = declaration_service.extract_declarations_llm(processed_path, ocr_out)
+    if not commodity_category and detected_category:
+        inspection.commodity_category = detected_category
+
     for decl in decls:
         db_decl = ExtractedDeclaration(
             inspection_id=inspection_id,
@@ -127,6 +152,12 @@ def create_inspection(
     
     # Run compliance engine calculation (run synchronously for the demo flow, or queue in BackgroundTasks)
     compliance_engine.run_compliance_check(db, inspection_id)
+
+    # 6. Automatically compile official PDF compliance report for this product scan
+    try:
+        report_service.generate_compliance_report(db, inspection_id, current_user.id)
+    except Exception as e:
+        print(f"Auto-generation of PDF report failed for {inspection_id}: {e}")
     
     # Audit log
     audit = AuditLog(
@@ -192,6 +223,23 @@ def verify_inspection(
     inspection.verified_by_id = current_user.id
     inspection.verified_date = datetime.utcnow()
     inspection.officer_remarks = request.remarks
+
+    # Apply Caliper Manual Override or Category Override if provided by Inspector
+    needs_reeval = False
+    if request.caliper_override_mm is not None and request.caliper_override_mm > 0:
+        inspection.caliper_override_mm = request.caliper_override_mm
+        needs_reeval = True
+    if request.commodity_category_override:
+        inspection.commodity_category = request.commodity_category_override
+        needs_reeval = True
+
+    if needs_reeval:
+        db.flush()
+        compliance_engine.run_compliance_check(db, id)
+        try:
+            report_service.generate_compliance_report(db, id, current_user.id)
+        except Exception as e:
+            print(f"Report re-generation warning: {e}")
 
     # If CONFIRM (violation confirmed), confirm open violations status
     if request.decision == "CONFIRM":

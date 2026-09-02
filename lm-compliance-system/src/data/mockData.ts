@@ -69,8 +69,8 @@ export const mockRules: Rule[] = [
   },
   {
     id: "LM-RULE-007",
-    title: "Rule 7 - Font Size and Legibility",
-    description: "All mandatory declarations on packages must be legible, prominent, and of a minimum height in relation to the area of the principal display panel.",
+    title: "Rule 13 - Font Size and Legibility",
+    description: "All mandatory declarations on packages must be legible, prominent, and of a minimum height under Rule 13 in relation to the area of the principal display panel.",
     applicability: "All Pre-packaged Commodities",
     validationParameters: "Minimum font height: 1.0mm (net qty <= 50g/ml), 2.0mm (50g-200g), 4.0mm (200g-1kg), 6.0mm (> 1kg). Background contrast ratio >= 4.5:1.",
     effectiveDate: "2011-04-01",
@@ -152,18 +152,18 @@ export const mockInspections: Inspection[] = [
       { declaration: "Consumer Care Phone/Email", detectedValue: "Ph: 1800-22-7753, Email: customercare@parle.biz", required: true, status: "PASS", confidence: 98, ruleReference: "Rule 6(1)(da)", boundingBox: [10, 88, 80, 8] },
       { declaration: "Date of Packaging", detectedValue: "MFD 06/2026", required: true, status: "PASS", confidence: 99, ruleReference: "Rule 6(1)(d)", boundingBox: [45, 58, 20, 5] }
     ],
-    officerRemarks: "All mandatory declarations verified on packaging. Font size is compliant with Rule 7 requirements for net weight package size.",
+    officerRemarks: "All mandatory declarations verified on packaging. Font size is compliant with Rule 13 requirements for net weight package size.",
     verificationStatus: "Verified",
     verifiedBy: "Rajesh Kumar",
     verifiedDate: "2026-08-26"
   },
   {
     id: "LM-2026-00122",
-    productName: "Surf Excel Easy Wash",
-    brand: "HUL",
+    productName: "Product Scan",
+    brand: "General Commodity",
     category: "Household Chemicals",
-    manufacturer: "Hindustan Unilever Limited (HUL)",
-    manufacturerAddress: "Unilever House, B. D. Sawant Marg, Chakala, Andheri (E), Mumbai - 400099",
+    manufacturer: "Packaged Commodities India Ltd.",
+    manufacturerAddress: "Industrial Area, Phase II, New Delhi - 110020",
     inspector: "Rajesh Kumar",
     date: "2026-08-25",
     status: "Non-Compliant",
@@ -177,7 +177,7 @@ export const mockInspections: Inspection[] = [
     detectionConfidence: 92,
     overallConfidence: 93,
     declarations: [
-      { declaration: "Product Name", detectedValue: "Surf Excel Easy Wash Detergent Powder", required: true, status: "PASS", confidence: 98, ruleReference: "Rule 6(1)(a)", boundingBox: [10, 15, 80, 12] },
+      { declaration: "Product Name", detectedValue: "Product Scan", required: true, status: "PASS", confidence: 98, ruleReference: "Rule 6(1)(a)", boundingBox: [10, 15, 80, 12] },
       { declaration: "Net Quantity", detectedValue: "Net Qty: 1 kg", required: true, status: "PASS", confidence: 97, ruleReference: "Rule 6(1)(c)", boundingBox: [15, 82, 30, 6] },
       { declaration: "MRP", detectedValue: "MRP ₹140.00", required: true, status: "WARNING", confidence: 95, ruleReference: "Rule 6(1)(e)", boundingBox: [50, 82, 40, 6] }, // missing (incl. of all taxes)
       { declaration: "Manufacturer Name/Address", detectedValue: "Hindustan Unilever Limited, Mumbai - 400099", required: true, status: "PASS", confidence: 96, ruleReference: "Rule 6(1)(b)", boundingBox: [10, 65, 80, 8] },
@@ -216,7 +216,7 @@ export const mockInspections: Inspection[] = [
       { declaration: "Consumer Care Phone/Email", detectedValue: "support@haldirams.com", required: true, status: "PASS", confidence: 87, ruleReference: "Rule 6(1)(da)", boundingBox: [10, 92, 80, 5] },
       { declaration: "Date of Packaging", detectedValue: "MFD 07/2026 (Low OCR confidence)", required: true, status: "WARNING", confidence: 68, ruleReference: "Rule 6(1)(d)", boundingBox: [45, 60, 20, 4] } // low confidence, warning
     ],
-    officerRemarks: "The packaging date text is highly blurred. AI flagged OCR confidence below threshold (68%). Inspector needs to visually confirm date and check if physical print conforms to Rule 7 legibility standards.",
+    officerRemarks: "The packaging date text is highly blurred. AI flagged OCR confidence below threshold (68%). Inspector needs to visually confirm date and check if physical print conforms to Rule 13 legibility standards.",
     verificationStatus: "Pending",
     verifiedBy: "",
     verifiedDate: ""
@@ -290,8 +290,8 @@ export const mockInspections: Inspection[] = [
 export const mockViolations: Violation[] = [
   {
     id: "VIO-2026-0001",
-    productName: "Surf Excel Easy Wash",
-    brand: "HUL",
+    productName: "Product Scan",
+    brand: "General Commodity",
     violationType: "Missing Consumer Care Details",
     severity: "High",
     detectedDate: "2026-08-25",
