@@ -715,9 +715,31 @@ function App() {
         if (geminiApiKey && files.length > 0) {
           try {
             setRealOcrStatusText("Querying Gemini 2.0 Flash Vision across multi-side package surfaces...");
-            const parts: any[] = [
-              { text: `Analyze these packaging images (Front, Back PDP, Sides) according to Indian Legal Metrology (Packaged Commodities) Rules, 2011. Extract real values printed on the packaging. Return valid JSON with keys: commodity_category, product_name, manufacturer_name_address, net_quantity, mfg_date, mrp, consumer_care, unit_sale_price, country_of_origin, best_before_or_expiry, veg_nonveg_symbol.` }
-            ];
+            const promptText = `Analyze these packaging images (Front, Back PDP, Sides) according to Indian Legal Metrology (Packaged Commodities) Rules, 2011.
+
+Critical Extraction Directives:
+- "Only report a value if it is clearly visible and legible in the image."
+- "If a field is missing, blurry, cut off, or you are not fully certain, return null for that field. Do not infer, estimate, or guess."
+- "Do not use outside knowledge about this product, brand, or category. Read only what is printed on the label in this specific image."
+
+For every extracted field, you MUST also populate the corresponding "<field>_raw_text_seen" where you quote the exact text snippet you read directly off the label for that field. If you did not see explicit, legible text on the label, return null for both the field and its raw_text_seen.
+
+Statutory Fields to Extract:
+1. commodity_category & commodity_category_raw_text_seen: "FOOD_PERISHABLE", "COSMETICS", "ELECTRONICS", "TEXTILE", "MULTI_PIECE", or "GENERAL" if clearly indicated, else null.
+2. product_name & product_name_raw_text_seen: Common or generic name printed on label.
+3. brand & brand_raw_text_seen: Brand or trademark name printed on label.
+4. manufacturer_name_address & manufacturer_name_address_raw_text_seen: Name and physical address of manufacturer/packer/importer.
+5. net_quantity & net_quantity_raw_text_seen: Net quantity with metric units (e.g. "500 g", "1 L").
+6. mfg_date & mfg_date_raw_text_seen: Month and year of manufacture or packaging (e.g. "05/2026").
+7. mrp & mrp_raw_text_seen: Maximum Retail Price inclusive of all taxes exactly as printed.
+8. consumer_care & consumer_care_raw_text_seen: Consumer care helpline and email.
+9. unit_sale_price & unit_sale_price_raw_text_seen: Unit sale price (e.g. "Rs 0.14 per g").
+10. country_of_origin & country_of_origin_raw_text_seen: Country of origin printed on label.
+11. best_before_or_expiry & best_before_or_expiry_raw_text_seen: Best before duration or expiry date if printed.
+12. veg_nonveg_symbol & veg_nonveg_symbol_raw_text_seen: "GREEN_VEG" or "BROWN_NONVEG" if dot is visible, else null.
+13. individual_piece_count & individual_piece_count_raw_text_seen: Piece count if multi-pack, else null.`;
+
+            const parts: any[] = [{ text: promptText }];
 
             for (const f of files) {
               if (f.file) {
@@ -738,20 +760,70 @@ function App() {
               }
             }
 
+            const responseSchema = {
+              type: "OBJECT",
+              properties: {
+                commodity_category: { type: "STRING", nullable: true },
+                commodity_category_raw_text_seen: { type: "STRING", nullable: true },
+                product_name: { type: "STRING", nullable: true },
+                product_name_raw_text_seen: { type: "STRING", nullable: true },
+                brand: { type: "STRING", nullable: true },
+                brand_raw_text_seen: { type: "STRING", nullable: true },
+                manufacturer_name_address: { type: "STRING", nullable: true },
+                manufacturer_name_address_raw_text_seen: { type: "STRING", nullable: true },
+                net_quantity: { type: "STRING", nullable: true },
+                net_quantity_raw_text_seen: { type: "STRING", nullable: true },
+                mfg_date: { type: "STRING", nullable: true },
+                mfg_date_raw_text_seen: { type: "STRING", nullable: true },
+                mrp: { type: "STRING", nullable: true },
+                mrp_raw_text_seen: { type: "STRING", nullable: true },
+                consumer_care: { type: "STRING", nullable: true },
+                consumer_care_raw_text_seen: { type: "STRING", nullable: true },
+                unit_sale_price: { type: "STRING", nullable: true },
+                unit_sale_price_raw_text_seen: { type: "STRING", nullable: true },
+                country_of_origin: { type: "STRING", nullable: true },
+                country_of_origin_raw_text_seen: { type: "STRING", nullable: true },
+                best_before_or_expiry: { type: "STRING", nullable: true },
+                best_before_or_expiry_raw_text_seen: { type: "STRING", nullable: true },
+                veg_nonveg_symbol: { type: "STRING", nullable: true },
+                veg_nonveg_symbol_raw_text_seen: { type: "STRING", nullable: true },
+                individual_piece_count: { type: "STRING", nullable: true },
+                individual_piece_count_raw_text_seen: { type: "STRING", nullable: true }
+              }
+            };
+
             for (const m of ['gemini-2.0-flash', 'gemini-1.5-flash']) {
               const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${geminiApiKey.trim()}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey.trim() },
                 body: JSON.stringify({
                   contents: [{ parts }],
-                  generationConfig: { responseMimeType: 'application/json' }
+                  generationConfig: { 
+                    temperature: 0.0,
+                    responseMimeType: 'application/json',
+                    responseSchema: responseSchema
+                  }
                 })
               });
               if (res.ok) {
                 const json = await res.json();
                 const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (text) {
-                  extFields = JSON.parse(text);
+                  const parsed = JSON.parse(text);
+                  
+                  // Discard ungrounded hallucinations where raw_text_seen was empty or null
+                  const tracked = [
+                    'product_name', 'brand', 'manufacturer_name_address', 'net_quantity',
+                    'mfg_date', 'mrp', 'consumer_care', 'unit_sale_price', 'country_of_origin',
+                    'best_before_or_expiry', 'veg_nonveg_symbol', 'individual_piece_count'
+                  ];
+                  for (const k of tracked) {
+                    const rawVal = parsed[`${k}_raw_text_seen`];
+                    if (parsed[k] && (!rawVal || !String(rawVal).trim() || ['null', 'none', 'n/a'].includes(String(rawVal).trim().toLowerCase()))) {
+                      parsed[k] = null;
+                    }
+                  }
+                  extFields = parsed;
                   break;
                 }
               }

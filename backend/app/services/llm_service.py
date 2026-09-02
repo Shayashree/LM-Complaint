@@ -23,35 +23,68 @@ class LLMService:
                 with open(image_path, "rb") as f:
                     image_data = base64.b64encode(f.read()).decode("utf-8")
                     
-                prompt = """
-                Analyze this packaged product label image according to the Legal Metrology (Packaged Commodities) Rules, 2011.
-                First, classify the commodity into one of the following categories:
-                - "FOOD_PERISHABLE" (food items, beverages, snacks, dairy, sweets, edible oils, spices)
-                - "COSMETICS" (skincare, soap, shampoo, cosmetics, perfume, toothpaste, lotion)
-                - "ELECTRONICS" (appliances, electronic gadgets, cables, bulbs, batteries)
-                - "TEXTILE" (apparel, garments, bedsheets, fabrics, footwear)
-                - "MULTI_PIECE" (packs containing multiple individual packages/pieces)
-                - "GENERAL" (detergents, cleaning agents, stationery, hardware, generic commodities)
+                prompt = """Analyze this packaged product label image according to the Legal Metrology (Packaged Commodities) Rules, 2011.
 
-                Then extract the following fields exactly as visible on the label:
-                1. commodity_category: One of the 6 categories above.
-                2. product_name: Common or generic name of the product.
-                3. manufacturer_name_address: Name and complete address of the manufacturer, packer, or importer.
-                4. net_quantity: Net weight/measure with standard metric units (e.g. "1 kg", "500 g", "100 ml").
-                5. mfg_date: Month and year of manufacture or packing (e.g. "05/2026", "MFD 08/2026").
-                6. mrp: Maximum Retail Price (inclusive of all taxes) exactly as printed (e.g., "MRP Rs 140.00 (incl. of all taxes)").
-                7. consumer_care: Consumer care contact details (phone number, email, address).
-                8. unit_sale_price: Unit sale price (e.g. "Rs 0.14 per g").
-                9. country_of_origin: Country of origin (e.g. "India", or foreign country name if imported).
-                10. best_before_or_expiry: Best before date, expiry date, or use-by date if declared (e.g. "Best Before 6 months from mfd", "Exp: 12/2026", or "N/A").
-                11. veg_nonveg_symbol: Green dot (Veg) or Brown dot (Non-Veg) if visible on food items ("GREEN_VEG", "BROWN_NONVEG", or "N/A").
-                12. individual_piece_count: Number of pieces if a multi-pack or multipiece package (e.g. "1", "4 packs", "10 units").
-                
-                Return the result ONLY as a raw JSON object with keys:
-                "commodity_category", "product_name", "manufacturer_name_address", "net_quantity", "mfg_date", "mrp", "consumer_care", "unit_sale_price", "country_of_origin", "best_before_or_expiry", "veg_nonveg_symbol", "individual_piece_count".
-                If a field is not found or visible, set its value to "N/A".
-                Response must be valid JSON only. Do not wrap in markdown code fences.
-                """
+Critical Extraction Directives:
+- "Only report a value if it is clearly visible and legible in the image."
+- "If a field is missing, blurry, cut off, or you are not fully certain, return null for that field. Do not infer, estimate, or guess."
+- "Do not use outside knowledge about this product, brand, or category. Read only what is printed on the label in this specific image."
+
+For every extracted field, you MUST also populate the corresponding "<field>_raw_text_seen" where you quote the exact text snippet you read directly off the label for that field. If you did not see explicit, legible text on the label, return null for both the field and its raw_text_seen.
+
+Statutory Fields to Extract:
+1. commodity_category & commodity_category_raw_text_seen: "FOOD_PERISHABLE", "COSMETICS", "ELECTRONICS", "TEXTILE", "MULTI_PIECE", or "GENERAL" if clearly indicated by printed text, else null.
+2. product_name & product_name_raw_text_seen: Common or generic name of the commodity printed on the label.
+3. brand & brand_raw_text_seen: Brand or trademark name printed on the label.
+4. manufacturer_name_address & manufacturer_name_address_raw_text_seen: Name and complete address of the manufacturer, packer, or importer.
+5. net_quantity & net_quantity_raw_text_seen: Net weight, volume, or count with standard metric units (e.g. "1 kg", "500 g", "100 ml").
+6. mfg_date & mfg_date_raw_text_seen: Month and year of manufacture or packing (e.g. "05/2026", "MFD 08/2026").
+7. mrp & mrp_raw_text_seen: Maximum Retail Price (inclusive of all taxes) exactly as printed (e.g. "MRP Rs 140.00 (incl. of all taxes)").
+8. consumer_care & consumer_care_raw_text_seen: Consumer care contact details (phone number, email, address).
+9. unit_sale_price & unit_sale_price_raw_text_seen: Unit sale price (e.g. "Rs 0.14 per g").
+10. country_of_origin & country_of_origin_raw_text_seen: Country of origin printed on the label (e.g. "India").
+11. best_before_or_expiry & best_before_or_expiry_raw_text_seen: Best before date, expiry date, or use-by duration if printed on the label.
+12. veg_nonveg_symbol & veg_nonveg_symbol_raw_text_seen: "GREEN_VEG" or "BROWN_NONVEG" if statutory dot symbol is printed, else null.
+13. individual_piece_count & individual_piece_count_raw_text_seen: Number of pieces if a multi-pack, else null.
+"""
+
+                response_schema = {
+                    "type": "OBJECT",
+                    "properties": {
+                        "commodity_category": {"type": "STRING", "nullable": True},
+                        "commodity_category_raw_text_seen": {"type": "STRING", "nullable": True},
+                        "product_name": {"type": "STRING", "nullable": True},
+                        "product_name_raw_text_seen": {"type": "STRING", "nullable": True},
+                        "brand": {"type": "STRING", "nullable": True},
+                        "brand_raw_text_seen": {"type": "STRING", "nullable": True},
+                        "manufacturer_name_address": {"type": "STRING", "nullable": True},
+                        "manufacturer_name_address_raw_text_seen": {"type": "STRING", "nullable": True},
+                        "net_quantity": {"type": "STRING", "nullable": True},
+                        "net_quantity_raw_text_seen": {"type": "STRING", "nullable": True},
+                        "mfg_date": {"type": "STRING", "nullable": True},
+                        "mfg_date_raw_text_seen": {"type": "STRING", "nullable": True},
+                        "mrp": {"type": "STRING", "nullable": True},
+                        "mrp_raw_text_seen": {"type": "STRING", "nullable": True},
+                        "consumer_care": {"type": "STRING", "nullable": True},
+                        "consumer_care_raw_text_seen": {"type": "STRING", "nullable": True},
+                        "unit_sale_price": {"type": "STRING", "nullable": True},
+                        "unit_sale_price_raw_text_seen": {"type": "STRING", "nullable": True},
+                        "country_of_origin": {"type": "STRING", "nullable": True},
+                        "country_of_origin_raw_text_seen": {"type": "STRING", "nullable": True},
+                        "best_before_or_expiry": {"type": "STRING", "nullable": True},
+                        "best_before_or_expiry_raw_text_seen": {"type": "STRING", "nullable": True},
+                        "veg_nonveg_symbol": {"type": "STRING", "nullable": True},
+                        "veg_nonveg_symbol_raw_text_seen": {"type": "STRING", "nullable": True},
+                        "individual_piece_count": {"type": "STRING", "nullable": True},
+                        "individual_piece_count_raw_text_seen": {"type": "STRING", "nullable": True}
+                    }
+                }
+
+                generation_config = {
+                    "temperature": 0.0,
+                    "responseMimeType": "application/json",
+                    "responseSchema": response_schema
+                }
                 
                 # Model fallback chain prioritizing Gemini 2.5 and 2.0 Next-Gen Vision
                 models_to_try = [
@@ -71,7 +104,7 @@ class LLMService:
                                 {"inlineData": {"mimeType": "image/jpeg", "data": image_data}}
                             ]
                         }],
-                        "generationConfig": {"responseMimeType": "application/json"}
+                        "generationConfig": generation_config
                     }
                     headers = {
                         "Content-Type": "application/json",
@@ -83,7 +116,43 @@ class LLMService:
                         text_out = resp_json["candidates"][0]["content"]["parts"][0]["text"].strip()
                         try:
                             parsed = json.loads(text_out)
-                            logger.info(f"Gemini {model_name} successfully extracted actual label declarations.")
+                            
+                            # Validation: If a field has a value but its raw_text_seen is empty or null,
+                            # discard the ungrounded hallucination
+                            tracked_fields = [
+                                "product_name",
+                                "brand",
+                                "manufacturer_name_address",
+                                "net_quantity",
+                                "mfg_date",
+                                "mrp",
+                                "consumer_care",
+                                "unit_sale_price",
+                                "country_of_origin",
+                                "best_before_or_expiry",
+                                "veg_nonveg_symbol",
+                                "individual_piece_count",
+                                "commodity_category"
+                            ]
+                            for f in tracked_fields:
+                                val = parsed.get(f)
+                                raw_key = f"{f}_raw_text_seen"
+                                raw_val = parsed.get(raw_key)
+
+                                if val is not None:
+                                    if (
+                                        raw_val is None 
+                                        or not str(raw_val).strip() 
+                                        or str(raw_val).strip().lower() in ["null", "none", "n/a", "undefined", "not seen", "not visible"]
+                                    ):
+                                        logger.warning(
+                                            f"Discarding ungrounded hallucination for '{f}': value='{val}' "
+                                            f"because {raw_key} is missing or null."
+                                        )
+                                        parsed[f] = None
+                                        parsed[raw_key] = None
+
+                            logger.info(f"Gemini {model_name} successfully extracted actual label declarations without hallucination.")
                             return parsed
                         except Exception:
                             import re
