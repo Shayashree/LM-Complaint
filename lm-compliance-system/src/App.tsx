@@ -3530,8 +3530,14 @@ Statutory Fields to Extract:
                       <ArrowLeft className="w-4 h-4 text-slate-650" />
                     </button>
                     <div>
-                      <h2 className="text-xl font-bold text-slate-900">Packaging Evidence Viewer</h2>
-                      <p className="text-xs text-slate-500">Visual mapping of OCR bounding boxes. Inspect region-wise details extracted from packaging.</p>
+                      <div className="flex items-center space-x-2">
+                        <h2 className="text-xl font-bold text-slate-900">Packaging Evidence Viewer</h2>
+                        <span className="bg-emerald-100 text-emerald-850 border border-emerald-300 font-bold px-2 py-0.5 rounded text-[10px] flex items-center space-x-1 shadow-xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                          <span>NVIDIA LocateAnything-3B (PBD Grounding Active)</span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">Visual mapping of neural spatial bounding boxes via NVIDIA LocateAnything-3B with Parallel Box Decoding.</p>
                     </div>
                   </div>
                   

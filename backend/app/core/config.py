@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     OCR_PROVIDER: str = "mock"  # 'paddleocr' or 'mock'
     STORAGE_PROVIDER: str = "local"  # 'local'
     GEMINI_API_KEY: Optional[str] = None
+    NVIDIA_LOCATE_ENABLED: bool = True
+    NVIDIA_LOCATE_MODE: str = "auto"  # 'auto', 'transformers', 'nim', or 'api'
+    NVIDIA_API_KEY: Optional[str] = None
+    NVIDIA_LOCATE_ENDPOINT: Optional[str] = "https://integrate.api.nvidia.com/v1"
+    NVIDIA_LOCATE_MODEL: str = "nvidia/LocateAnything-3B"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

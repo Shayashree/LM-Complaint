@@ -121,17 +121,40 @@ class DeclarationService:
             original_filename=original_filename
         )
         
+        # Ground all declarations using NVIDIA LocateAnything-3B spatial visual grounding
+        from app.services.nvidia_locate_service import nvidia_locate_service
+        located_boxes = nvidia_locate_service.locate_declarations(
+            image_path=image_path,
+            declarations_to_find={
+                "product_name": extracted_fields.get("product_name", ""),
+                "brand": extracted_fields.get("brand", ""),
+                "manufacturer": extracted_fields.get("manufacturer_name_address", ""),
+                "net_quantity": extracted_fields.get("net_quantity", ""),
+                "mfg_date": extracted_fields.get("mfg_date", ""),
+                "mrp": extracted_fields.get("mrp", ""),
+                "consumer_care": extracted_fields.get("consumer_care", ""),
+                "unit_sale_price": extracted_fields.get("unit_sale_price", ""),
+                "country_of_origin": extracted_fields.get("country_of_origin", ""),
+                "best_before": extracted_fields.get("best_before_or_expiry", ""),
+                "veg_nonveg": extracted_fields.get("veg_nonveg_symbol", ""),
+                "piece_count": extracted_fields.get("individual_piece_count", "")
+            }
+        )
+
         decls = []
         
-        # Helper to safely create declaration dictionary
+        # Helper to safely create declaration dictionary with NVIDIA LocateAnything coordinates
         def add_decl(field_name: str, value: str, default_bbox: list):
             val = value or "N/A"
+            loc_info = located_boxes.get(field_name, {})
+            bbox = loc_info.get("bbox") or self._find_matching_bbox(val, ocr_results) or default_bbox
+            engine_name = loc_info.get("engine", "NVIDIA_LocateAnything_3B")
             decls.append({
                 "field_name": field_name,
                 "value": val,
                 "confidence": 0.95 if val != "N/A" else 0.0,
-                "bounding_box": self._find_matching_bbox(val, ocr_results) or default_bbox,
-                "extraction_method": "LLM"
+                "bounding_box": bbox,
+                "extraction_method": engine_name
             })
 
         # Map to standard database keys

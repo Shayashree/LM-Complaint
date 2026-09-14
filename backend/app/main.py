@@ -19,6 +19,7 @@ from app.api.rules import router as rules_router
 from app.api.dashboard import router as dashboard_router
 from app.api.audit_logs import router as audit_logs_router
 from app.api.ecom import router as ecom_router
+from app.api.locate import router as locate_router
 
 # Ensure local directories exist
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
@@ -77,6 +78,7 @@ app.include_router(rules_router, prefix=settings.API_V1_STR)
 app.include_router(dashboard_router, prefix=settings.API_V1_STR)
 app.include_router(audit_logs_router, prefix=settings.API_V1_STR)
 app.include_router(ecom_router, prefix=settings.API_V1_STR)
+app.include_router(locate_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def read_root():
