@@ -597,6 +597,50 @@ function App() {
     }
   };
 
+  const loadPresetPackage = (pkg: 'chings' | 'parle' | 'haldirams' | 'dettol') => {
+    if (pkg === 'chings') {
+      setScanCategory('FOOD_PERISHABLE');
+      setTypedProductName("Ching's Secret Dark Soy Sauce");
+      setTypedBrand("Ching's Secret");
+      setTypedManufacturer("Capital Foods Pvt. Ltd., Villa Capital, S.V. Road, Jogeshwari (W), Mumbai - 400102");
+      setScanFiles([
+        { name: "chings_front_label.jpg", side: "Front Panel (FOP)", sideCode: "front", size: "1.2 MB", previewUrl: "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=600&auto=format&fit=crop&q=80" },
+        { name: "chings_back_pdp.jpg", side: "Back Panel (PDP)", sideCode: "back", size: "1.5 MB", previewUrl: "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=600&auto=format&fit=crop&q=80" }
+      ]);
+      triggerToast("Loaded Ching's Secret Soy Sauce (6-Panel Demo Preset)");
+    } else if (pkg === 'parle') {
+      setScanCategory('FOOD_PERISHABLE');
+      setTypedProductName("Parle-G Original Gluco Biscuits");
+      setTypedBrand("Parle-G");
+      setTypedManufacturer("Parle Products Pvt. Ltd., V.S. Khandekar Marg, Vile Parle (East), Mumbai - 400057");
+      setScanFiles([
+        { name: "parle_front.jpg", side: "Front Panel (FOP)", sideCode: "front", size: "850 KB", previewUrl: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=600&auto=format&fit=crop&q=80" },
+        { name: "parle_pdp.jpg", side: "Back Panel (PDP)", sideCode: "back", size: "1.1 MB", previewUrl: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=600&auto=format&fit=crop&q=80" }
+      ]);
+      triggerToast("Loaded Parle-G Biscuit (100% Compliant Preset)");
+    } else if (pkg === 'haldirams') {
+      setScanCategory('FOOD_PERISHABLE');
+      setTypedProductName("Haldiram's Bhujia Sev");
+      setTypedBrand("Haldiram's");
+      setTypedManufacturer("Haldiram Foods International Pvt. Ltd., Nagpur - 440024");
+      setScanFiles([
+        { name: "haldiram_front.jpg", side: "Front Panel (FOP)", sideCode: "front", size: "920 KB", previewUrl: "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=600&auto=format&fit=crop&q=80" },
+        { name: "haldiram_pdp.jpg", side: "Back Panel (PDP)", sideCode: "back", size: "1.3 MB", previewUrl: "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=600&auto=format&fit=crop&q=80" }
+      ]);
+      triggerToast("Loaded Haldiram's Bhujia Sev Preset");
+    } else if (pkg === 'dettol') {
+      setScanCategory('COSMETICS');
+      setTypedProductName("Dettol Original Germ Protection Bar Soap");
+      setTypedBrand("Dettol");
+      setTypedManufacturer("Reckitt Benckiser (India) Pvt. Ltd., DLF Cyber City, Gurugram - 122002");
+      setScanFiles([
+        { name: "dettol_front.jpg", side: "Front Panel (FOP)", sideCode: "front", size: "780 KB", previewUrl: "https://images.unsplash.com/photo-1607006310370-e5684784a0d8?w=600&auto=format&fit=crop&q=80" },
+        { name: "dettol_pdp.jpg", side: "Back Panel (PDP)", sideCode: "back", size: "950 KB", previewUrl: "https://images.unsplash.com/photo-1607006310370-e5684784a0d8?w=600&auto=format&fit=crop&q=80" }
+      ]);
+      triggerToast("Loaded Dettol Soap Preset");
+    }
+  };
+
 
   // Violation Creator inputs
   const [showAddViolationModal, setShowAddViolationModal] = useState(false);
@@ -829,7 +873,7 @@ Statutory Fields to Extract:
               }
             };
 
-            for (const m of ['gemini-2.0-flash', 'gemini-1.5-flash']) {
+            for (const m of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']) {
               const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${geminiApiKey.trim()}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey.trim() },
@@ -897,10 +941,10 @@ Statutory Fields to Extract:
           }
         }
 
-        // 3. Smart Category Rule Fallback if image had no legible text
+        // 3. Fallback when image text is not legible
         if (!extFields) {
           const fileName = (files[0]?.name || '').toLowerCase();
-          const isFood = scanCategory === 'FOOD_PERISHABLE' || ['food', 'biscuit', 'cookie', 'parle', 'haldiram', 'bhujia', 'sev', 'maggi', 'atta', 'oil', 'butter', 'amul', 'chips', 'lays', 'snack', 'tea', 'milk'].some(k => fileName.includes(k));
+          const isFood = scanCategory === 'FOOD_PERISHABLE' || ['food', 'biscuit', 'cookie', 'parle', 'haldiram', 'bhujia', 'sev', 'maggi', 'atta', 'oil', 'butter', 'amul', 'chips', 'lays', 'snack', 'tea', 'milk', 'ching', 'sauce'].some(k => fileName.includes(k));
           const isCosmetic = scanCategory === 'COSMETICS' || ['soap', 'shampoo', 'dove', 'dettol', 'colgate', 'paste', 'lotion', 'cream', 'wash'].some(k => fileName.includes(k));
           const isElectronics = scanCategory === 'ELECTRONICS' || ['bulb', 'led', 'charger', 'cable', 'electronics', 'battery'].some(k => fileName.includes(k));
           const isMulti = scanCategory === 'MULTI_PIECE' || ['multipack', 'combo', 'pack_of', 'set'].some(k => fileName.includes(k));
@@ -908,14 +952,15 @@ Statutory Fields to Extract:
           extFields = {
             commodity_category: isFood ? 'FOOD_PERISHABLE' : (isCosmetic ? 'COSMETICS' : (isElectronics ? 'ELECTRONICS' : (isMulti ? 'MULTI_PIECE' : 'GENERAL'))),
             product_name: files[0]?.name?.replace(/\.[^/.]+$/, "") || 'Packaged Retail Commodity',
-            manufacturer_name_address: 'Standard Registered Manufacturer, Industrial Area, Mumbai - 400057',
-            net_quantity: '500 g',
-            mfg_date: '05/2026',
-            mrp: 'MRP Rs 85.00 (incl. of all taxes)',
-            consumer_care: 'Customer Care Helpline: 1800-22-7753 | care@consumerhelp.in',
-            unit_sale_price: 'Rs 0.17 per g',
-            country_of_origin: 'India',
-            best_before_or_expiry: 'Best Before 6 months from packaging',
+            brand: 'Brand',
+            manufacturer_name_address: 'N/A',
+            net_quantity: 'N/A',
+            mfg_date: 'N/A',
+            mrp: 'N/A',
+            consumer_care: 'N/A',
+            unit_sale_price: 'N/A',
+            country_of_origin: 'N/A',
+            best_before_or_expiry: 'N/A',
             veg_nonveg_symbol: isFood ? 'GREEN_VEG' : 'N/A'
           };
         }
@@ -929,14 +974,16 @@ Statutory Fields to Extract:
           extFields.manufacturer_name_address = typedManufacturer.trim();
         }
 
-        // Ensure robust default values so no statutory declaration is left unpopulated
-        if (!extFields.mrp || extFields.mrp === 'N/A') extFields.mrp = '₹ 50.00 (incl. of all taxes)';
-        if (!extFields.net_quantity || extFields.net_quantity === 'N/A') extFields.net_quantity = '250 g';
-        if (!extFields.best_before_or_expiry || extFields.best_before_or_expiry === 'N/A') extFields.best_before_or_expiry = 'Best before 9 months from packaging';
-        if (!extFields.mfg_date || extFields.mfg_date === 'N/A') extFields.mfg_date = '04/2026';
-        if (!extFields.consumer_care || extFields.consumer_care === 'N/A') extFields.consumer_care = 'Helpline: 1800-22-7799 | Email: customercare@consumerhelp.in';
-        if (!extFields.country_of_origin || extFields.country_of_origin === 'N/A') extFields.country_of_origin = 'India';
-        if (!extFields.manufacturer_name_address || extFields.manufacturer_name_address === 'N/A') extFields.manufacturer_name_address = 'Standard Registered Manufacturer, Industrial Area, Mumbai - 400057';
+        // Keep N/A for missing items so the rule engine accurately reports violations
+        if (!extFields.product_name) extFields.product_name = 'Packaged Commodity Item';
+        if (!extFields.brand) extFields.brand = extFields.product_name.split(' ')[0] || 'Brand';
+        if (!extFields.mrp) extFields.mrp = 'N/A';
+        if (!extFields.net_quantity) extFields.net_quantity = 'N/A';
+        if (!extFields.best_before_or_expiry) extFields.best_before_or_expiry = 'N/A';
+        if (!extFields.mfg_date) extFields.mfg_date = 'N/A';
+        if (!extFields.consumer_care) extFields.consumer_care = 'N/A';
+        if (!extFields.country_of_origin) extFields.country_of_origin = 'N/A';
+        if (!extFields.manufacturer_name_address) extFields.manufacturer_name_address = 'N/A';
 
         // Calculate statutory font heights under Rule 13 Schedule II
         const calArea = Math.round((scanPdpWidth * scanPdpHeight) / 100);
@@ -2668,6 +2715,46 @@ Statutory Fields to Extract:
                         <input type="file" ref={fileInputSideRightRef} accept="image/*" onChange={(e) => e.target.files?.[0] && addOrUpdatePanelFile(e.target.files[0], "Right Side Panel", "side_right")} className="hidden" />
                         <input type="file" ref={fileInputTopRef} accept="image/*" onChange={(e) => e.target.files?.[0] && addOrUpdatePanelFile(e.target.files[0], "Top Panel (Lid/Cap)", "top")} className="hidden" />
                         <input type="file" ref={fileInputBottomRef} accept="image/*" onChange={(e) => e.target.files?.[0] && addOrUpdatePanelFile(e.target.files[0], "Bottom Panel (Base)", "bottom")} className="hidden" />
+
+                        {/* 1-Click Interactive Test Package Presets */}
+                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 rounded-lg border border-amber-200 flex flex-col md:flex-row md:items-center justify-between gap-2 shadow-xs">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xs font-bold text-amber-900 flex items-center gap-1 shrink-0">
+                              <span>🧪 Test Presets:</span>
+                            </span>
+                            <span className="text-[10px] text-amber-800">1-Click sample multi-surface packs for instant evaluation:</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => loadPresetPackage('chings')}
+                              className="px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded text-[10px] font-bold text-slate-800 transition shadow-2xs flex items-center space-x-1"
+                            >
+                              <span>🥫 Ching's Soy Sauce (200g)</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => loadPresetPackage('parle')}
+                              className="px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded text-[10px] font-bold text-slate-800 transition shadow-2xs flex items-center space-x-1"
+                            >
+                              <span>🍪 Parle-G (800g Compliant)</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => loadPresetPackage('haldirams')}
+                              className="px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded text-[10px] font-bold text-slate-800 transition shadow-2xs flex items-center space-x-1"
+                            >
+                              <span>🌶️ Haldiram's Bhujia (400g)</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => loadPresetPackage('dettol')}
+                              className="px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-300 rounded text-[10px] font-bold text-slate-800 transition shadow-2xs flex items-center space-x-1"
+                            >
+                              <span>🧼 Dettol Soap (125g)</span>
+                            </button>
+                          </div>
+                        </div>
 
                         {/* Multi-Surface Capture Header */}
                         <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
