@@ -1,8 +1,8 @@
 import Tesseract from 'tesseract.js';
 
 export interface PackagingSideItem {
-  side: 'Front Panel' | 'Back Panel (PDP)' | 'Left Side' | 'Right Side / Top';
-  sideCode: 'front' | 'back' | 'side_left' | 'side_right';
+  side: 'Front Panel' | 'Back Panel (PDP)' | 'Left Side' | 'Right Side' | 'Top Panel (Lid/Cap)' | 'Bottom Panel (Base)';
+  sideCode: 'front' | 'back' | 'side_left' | 'side_right' | 'top' | 'bottom';
   name: string;
   file?: File;
   previewUrl?: string;

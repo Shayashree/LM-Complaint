@@ -413,11 +413,12 @@ function App() {
   const [scanFiles, setScanFiles] = useState<{ 
     name: string; 
     side: string; 
-    sideCode?: 'front' | 'back' | 'side_left' | 'side_right'; 
+    sideCode?: 'front' | 'back' | 'side_left' | 'side_right' | 'top' | 'bottom'; 
     size: string; 
     file?: File; 
     previewUrl?: string 
   }[]>([]);
+  const [capturingSide, setCapturingSide] = useState<{ side: string; sideCode: 'front' | 'back' | 'side_left' | 'side_right' | 'top' | 'bottom' } | null>(null);
   const [activeEvidencePanelIndex, setActiveEvidencePanelIndex] = useState<number>(0);
   const [realOcrStatusText, setRealOcrStatusText] = useState<string>('');
   const [geminiApiKey, setGeminiApiKey] = useState<string>(() => localStorage.getItem('gemini_api_key') || '');
@@ -533,15 +534,17 @@ function App() {
   // Live Camera stream reference
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null);
 
-  // Multi-Side Package Capture input refs
+  // Multi-Side Package Capture input refs (6 Panels: Front, Back, Left, Right, Top, Bottom)
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputMultiRef = useRef<HTMLInputElement>(null);
   const fileInputFrontRef = useRef<HTMLInputElement>(null);
   const fileInputBackRef = useRef<HTMLInputElement>(null);
   const fileInputSideLeftRef = useRef<HTMLInputElement>(null);
   const fileInputSideRightRef = useRef<HTMLInputElement>(null);
+  const fileInputTopRef = useRef<HTMLInputElement>(null);
+  const fileInputBottomRef = useRef<HTMLInputElement>(null);
 
-  const addOrUpdatePanelFile = (file: File, side: string, sideCode: 'front' | 'back' | 'side_left' | 'side_right') => {
+  const addOrUpdatePanelFile = (file: File, side: string, sideCode: 'front' | 'back' | 'side_left' | 'side_right' | 'top' | 'bottom') => {
     const sizeStr = file.size > 1024 * 1024 
       ? (file.size / (1024 * 1024)).toFixed(1) + " MB"
       : (file.size / 1024).toFixed(0) + " KB";
@@ -561,13 +564,15 @@ function App() {
   const handleMultiFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    const defaultSides: { side: string; sideCode: 'front' | 'back' | 'side_left' | 'side_right' }[] = [
-      { side: 'Front Panel', sideCode: 'front' },
+    const defaultSides: { side: string; sideCode: 'front' | 'back' | 'side_left' | 'side_right' | 'top' | 'bottom' }[] = [
+      { side: 'Front Panel (FOP)', sideCode: 'front' },
       { side: 'Back Panel (PDP)', sideCode: 'back' },
       { side: 'Left Side Panel', sideCode: 'side_left' },
-      { side: 'Right Side / Top', sideCode: 'side_right' }
+      { side: 'Right Side Panel', sideCode: 'side_right' },
+      { side: 'Top Panel (Lid/Cap)', sideCode: 'top' },
+      { side: 'Bottom Panel (Base)', sideCode: 'bottom' }
     ];
-    const newItems = files.slice(0, 4).map((f, i) => {
+    const newItems = files.slice(0, 6).map((f, i) => {
       const sizeStr = f.size > 1024 * 1024 
         ? (f.size / (1024 * 1024)).toFixed(1) + " MB"
         : (f.size / 1024).toFixed(0) + " KB";
@@ -582,7 +587,7 @@ function App() {
       };
     });
     setScanFiles(newItems);
-    triggerToast(`Loaded ${newItems.length} package sides for complete multi-surface scan!`);
+    triggerToast(`Loaded ${newItems.length} packaging panels for complete 6-surface 360° scan!`);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2603,6 +2608,9 @@ Statutory Fields to Extract:
                           autoPlay
                           playsInline
                         />
+                        <div className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-xs text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-500/30">
+                          Capturing: {capturingSide?.side || "Front Panel (FOP)"}
+                        </div>
                         <div className="absolute bottom-3 flex space-x-2">
                           <button
                             type="button"
@@ -2617,10 +2625,10 @@ Statutory Fields to Extract:
                                   ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
                                   canvas.toBlob((blob) => {
                                     if (blob) {
-                                      const file = new File([blob], "captured_pack_label.jpg", { type: "image/jpeg" });
-                                      const previewUrl = URL.createObjectURL(blob);
-                                      setScanFiles([{ name: file.name, file: file, side: "Live Camera Capture", size: `${canvas.width} x ${canvas.height}`, previewUrl }]);
-                                      triggerToast("Photo captured successfully!");
+                                      const sideName = capturingSide?.side || "Front Panel (FOP)";
+                                      const sideCode = capturingSide?.sideCode || "front";
+                                      const file = new File([blob], `${sideCode}_panel_capture.jpg`, { type: "image/jpeg" });
+                                      addOrUpdatePanelFile(file, sideName, sideCode);
                                     }
                                   }, 'image/jpeg');
                                 }
@@ -2629,10 +2637,11 @@ Statutory Fields to Extract:
                                 webcamStream.getTracks().forEach(track => track.stop());
                               }
                               setWebcamStream(null);
+                              setCapturingSide(null);
                             }}
                             className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3.5 py-1.5 rounded text-[10px] uppercase shadow transition"
                           >
-                            Capture Label Photo
+                            Capture Panel Photo
                           </button>
                           <button
                             type="button"
@@ -2641,6 +2650,7 @@ Statutory Fields to Extract:
                                 webcamStream.getTracks().forEach(track => track.stop());
                               }
                               setWebcamStream(null);
+                              setCapturingSide(null);
                             }}
                             className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3.5 py-1.5 rounded text-[10px] uppercase transition"
                           >
@@ -2650,22 +2660,24 @@ Statutory Fields to Extract:
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {/* Hidden Multi-Surface File Inputs */}
+                        {/* Hidden Multi-Surface File Inputs for 6 Panels */}
                         <input type="file" ref={fileInputMultiRef} multiple accept="image/*" onChange={handleMultiFilesChange} className="hidden" />
-                        <input type="file" ref={fileInputFrontRef} accept="image/*" onChange={(e) => e.target.files?.[0] && addOrUpdatePanelFile(e.target.files[0], "Front Panel", "front")} className="hidden" />
+                        <input type="file" ref={fileInputFrontRef} accept="image/*" onChange={(e) => e.target.files?.[0] && addOrUpdatePanelFile(e.target.files[0], "Front Panel (FOP)", "front")} className="hidden" />
                         <input type="file" ref={fileInputBackRef} accept="image/*" onChange={(e) => e.target.files?.[0] && addOrUpdatePanelFile(e.target.files[0], "Back Panel (PDP)", "back")} className="hidden" />
                         <input type="file" ref={fileInputSideLeftRef} accept="image/*" onChange={(e) => e.target.files?.[0] && addOrUpdatePanelFile(e.target.files[0], "Left Side Panel", "side_left")} className="hidden" />
-                        <input type="file" ref={fileInputSideRightRef} accept="image/*" onChange={(e) => e.target.files?.[0] && addOrUpdatePanelFile(e.target.files[0], "Right Side / Top", "side_right")} className="hidden" />
+                        <input type="file" ref={fileInputSideRightRef} accept="image/*" onChange={(e) => e.target.files?.[0] && addOrUpdatePanelFile(e.target.files[0], "Right Side Panel", "side_right")} className="hidden" />
+                        <input type="file" ref={fileInputTopRef} accept="image/*" onChange={(e) => e.target.files?.[0] && addOrUpdatePanelFile(e.target.files[0], "Top Panel (Lid/Cap)", "top")} className="hidden" />
+                        <input type="file" ref={fileInputBottomRef} accept="image/*" onChange={(e) => e.target.files?.[0] && addOrUpdatePanelFile(e.target.files[0], "Bottom Panel (Base)", "bottom")} className="hidden" />
 
                         {/* Multi-Surface Capture Header */}
                         <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
                           <div>
                             <div className="flex items-center space-x-2">
                               <h3 className="text-sm font-bold text-slate-900">Multi-Surface Packaging Capture Station</h3>
-                              <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded">360° Inspection</span>
+                              <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded">6-Panel 360° Inspection</span>
                             </div>
                             <p className="text-[11px] text-slate-500 mt-0.5">
-                              Upload Front, Back (PDP), and Side panels for a comprehensive Legal Metrology statutory audit.
+                              Upload Front, Back (PDP), Left/Right Sides, Top, and Bottom panels for a complete statutory audit.
                             </p>
                           </div>
                           <div className="flex items-center space-x-2 shrink-0">
@@ -2675,7 +2687,7 @@ Statutory Fields to Extract:
                               className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 py-1.5 rounded text-xs transition flex items-center space-x-1.5 shadow-sm"
                             >
                               <Upload className="w-3.5 h-3.5" />
-                              <span>⚡ Batch Upload All Sides</span>
+                              <span>⚡ Batch Upload All 6 Sides</span>
                             </button>
                             {scanFiles.length > 0 && (
                               <button
@@ -2689,8 +2701,8 @@ Statutory Fields to Extract:
                           </div>
                         </div>
 
-                        {/* 4-Panel Grid for Front, Back, Left Side, Right Side/Top */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* 6-Panel Grid: Front, Back, Left Side, Right Side, Top, Bottom */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 
                           {/* 1. FRONT PANEL */}
                           {(() => {
@@ -2742,6 +2754,7 @@ Statutory Fields to Extract:
                                         type="button"
                                         onClick={async () => {
                                           try {
+                                            setCapturingSide({ side: "Front Panel (FOP)", sideCode: "front" });
                                             const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                                             setWebcamStream(mediaStream);
                                             triggerToast("Camera active. Capture front panel.");
@@ -2811,6 +2824,7 @@ Statutory Fields to Extract:
                                         type="button"
                                         onClick={async () => {
                                           try {
+                                            setCapturingSide({ side: "Back Panel (PDP)", sideCode: "back" });
                                             const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                                             setWebcamStream(mediaStream);
                                             triggerToast("Camera active. Capture back PDP panel.");
@@ -2846,7 +2860,7 @@ Statutory Fields to Extract:
                                       <span className="text-[9px] bg-slate-100 text-slate-500 font-medium px-1.5 py-0.5 rounded">Optional</span>
                                     )}
                                   </div>
-                                  <p className="text-[10px] text-slate-500 mt-1">Batch / Lot No., Month &amp; Year of Packing, Barcode</p>
+                                  <p className="text-[10px] text-slate-500 mt-1">Ingredients List, Nutritional Facts, Storage Guidelines</p>
                                   
                                   {leftFile ? (
                                     <div className="mt-2.5 flex items-center space-x-2.5 p-2 bg-white rounded border border-emerald-200">
@@ -2880,6 +2894,7 @@ Statutory Fields to Extract:
                                         type="button"
                                         onClick={async () => {
                                           try {
+                                            setCapturingSide({ side: "Left Side Panel", sideCode: "side_left" });
                                             const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                                             setWebcamStream(mediaStream);
                                             triggerToast("Camera active. Capture left side.");
@@ -2899,7 +2914,7 @@ Statutory Fields to Extract:
                             );
                           })()}
 
-                          {/* 4. RIGHT SIDE / TOP PANEL */}
+                          {/* 4. RIGHT SIDE PANEL */}
                           {(() => {
                             const rightFile = scanFiles.find(f => f.sideCode === 'side_right');
                             return (
@@ -2907,7 +2922,7 @@ Statutory Fields to Extract:
                                 <div>
                                   <div className="flex items-center justify-between">
                                     <span className="text-xs font-bold text-slate-900 flex items-center space-x-1.5">
-                                      <span>📸 4. Right Side / Top</span>
+                                      <span>📸 4. Right Side Panel</span>
                                     </span>
                                     {rightFile ? (
                                       <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">Ready</span>
@@ -2915,7 +2930,7 @@ Statutory Fields to Extract:
                                       <span className="text-[9px] bg-slate-100 text-slate-500 font-medium px-1.5 py-0.5 rounded">Optional</span>
                                     )}
                                   </div>
-                                  <p className="text-[10px] text-slate-500 mt-1">Secondary Declarations, Ingredients, Stamped Dates</p>
+                                  <p className="text-[10px] text-slate-500 mt-1">Manufacturer Address, Licences, Factory Codes</p>
                                   
                                   {rightFile ? (
                                     <div className="mt-2.5 flex items-center space-x-2.5 p-2 bg-white rounded border border-emerald-200">
@@ -2949,9 +2964,150 @@ Statutory Fields to Extract:
                                         type="button"
                                         onClick={async () => {
                                           try {
+                                            setCapturingSide({ side: "Right Side Panel", sideCode: "side_right" });
                                             const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                                             setWebcamStream(mediaStream);
-                                            triggerToast("Camera active. Capture right/top panel.");
+                                            triggerToast("Camera active. Capture right side panel.");
+                                          } catch (err) {
+                                            triggerToast("Camera access unavailable.");
+                                          }
+                                        }}
+                                        className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold p-1.5 rounded transition"
+                                        title="Webcam"
+                                      >
+                                        <Camera className="w-3.5 h-3.5 text-slate-500" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* 5. TOP PANEL (LID / CAP) */}
+                          {(() => {
+                            const topFile = scanFiles.find(f => f.sideCode === 'top');
+                            return (
+                              <div className={`p-3.5 rounded-lg border transition flex flex-col justify-between ${topFile ? 'bg-emerald-50/40 border-emerald-300' : 'bg-white border-slate-200 border-dashed'}`}>
+                                <div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-slate-900 flex items-center space-x-1.5">
+                                      <span>📸 5. Top Panel (Lid / Cap)</span>
+                                    </span>
+                                    {topFile ? (
+                                      <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">Ready</span>
+                                    ) : (
+                                      <span className="text-[9px] bg-slate-100 text-slate-500 font-medium px-1.5 py-0.5 rounded">Optional</span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 mt-1">Batch/Lot No., Stamped MFD/PKD Date, Expiry Stamp</p>
+                                  
+                                  {topFile ? (
+                                    <div className="mt-2.5 flex items-center space-x-2.5 p-2 bg-white rounded border border-emerald-200">
+                                      {topFile.previewUrl && (
+                                        <img src={topFile.previewUrl} alt="Top Panel" className="w-12 h-12 object-cover rounded border" />
+                                      )}
+                                      <div className="min-w-0 flex-1">
+                                        <span className="text-[11px] font-bold text-slate-800 truncate block">{topFile.name}</span>
+                                        <span className="text-[9px] text-slate-400">{topFile.size}</span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => removePanelFile('top')}
+                                        className="text-red-500 hover:text-red-700 text-xs font-bold px-1"
+                                        title="Remove photo"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="mt-3 flex items-center space-x-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => fileInputTopRef.current?.click()}
+                                        className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-1.5 px-2.5 rounded text-[10px] uppercase transition flex items-center justify-center space-x-1"
+                                      >
+                                        <Upload className="w-3 h-3" />
+                                        <span>Select Photo</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          try {
+                                            setCapturingSide({ side: "Top Panel (Lid/Cap)", sideCode: "top" });
+                                            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                                            setWebcamStream(mediaStream);
+                                            triggerToast("Camera active. Capture top lid/cap.");
+                                          } catch (err) {
+                                            triggerToast("Camera access unavailable.");
+                                          }
+                                        }}
+                                        className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold p-1.5 rounded transition"
+                                        title="Webcam"
+                                      >
+                                        <Camera className="w-3.5 h-3.5 text-slate-500" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* 6. BOTTOM PANEL (BASE) */}
+                          {(() => {
+                            const bottomFile = scanFiles.find(f => f.sideCode === 'bottom');
+                            return (
+                              <div className={`p-3.5 rounded-lg border transition flex flex-col justify-between ${bottomFile ? 'bg-emerald-50/40 border-emerald-300' : 'bg-white border-slate-200 border-dashed'}`}>
+                                <div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-slate-900 flex items-center space-x-1.5">
+                                      <span>📸 6. Bottom Panel (Base)</span>
+                                    </span>
+                                    {bottomFile ? (
+                                      <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">Ready</span>
+                                    ) : (
+                                      <span className="text-[9px] bg-slate-100 text-slate-500 font-medium px-1.5 py-0.5 rounded">Optional</span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 mt-1">Barcode (EAN-13), Recycling Symbols, Packaging Material</p>
+                                  
+                                  {bottomFile ? (
+                                    <div className="mt-2.5 flex items-center space-x-2.5 p-2 bg-white rounded border border-emerald-200">
+                                      {bottomFile.previewUrl && (
+                                        <img src={bottomFile.previewUrl} alt="Bottom Panel" className="w-12 h-12 object-cover rounded border" />
+                                      )}
+                                      <div className="min-w-0 flex-1">
+                                        <span className="text-[11px] font-bold text-slate-800 truncate block">{bottomFile.name}</span>
+                                        <span className="text-[9px] text-slate-400">{bottomFile.size}</span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => removePanelFile('bottom')}
+                                        className="text-red-500 hover:text-red-700 text-xs font-bold px-1"
+                                        title="Remove photo"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="mt-3 flex items-center space-x-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => fileInputBottomRef.current?.click()}
+                                        className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-1.5 px-2.5 rounded text-[10px] uppercase transition flex items-center justify-center space-x-1"
+                                      >
+                                        <Upload className="w-3 h-3" />
+                                        <span>Select Photo</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          try {
+                                            setCapturingSide({ side: "Bottom Panel (Base)", sideCode: "bottom" });
+                                            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                                            setWebcamStream(mediaStream);
+                                            triggerToast("Camera active. Capture bottom base panel.");
                                           } catch (err) {
                                             triggerToast("Camera access unavailable.");
                                           }
@@ -2974,11 +3130,11 @@ Statutory Fields to Extract:
                         <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-3">
                           <div className="text-xs">
                             <span className="font-bold text-slate-800">
-                              Attached Packaging Surfaces: <span className="text-amber-700 font-mono">{scanFiles.length} / 4</span> panels ready
+                              Attached Packaging Surfaces: <span className="text-amber-700 font-mono">{scanFiles.length} / 6</span> panels ready
                             </span>
                             <p className="text-[10px] text-slate-500 mt-0.5">
                               {scanFiles.length >= 2 
-                                ? "✓ Front and PDP panels attached — Complete multi-surface extraction ready." 
+                                ? "✓ Complete multi-surface extraction ready across attached packaging panels." 
                                 : "Attach Front and Back (PDP) panels for full statutory compliance scoring."}
                             </p>
                           </div>
