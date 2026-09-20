@@ -1,4 +1,4 @@
-﻿{
+{
   "buildCommand": "cd lm-compliance-system && npm install && npm run build",
   "outputDirectory": "lm-compliance-system/dist",
   "rewrites": [
