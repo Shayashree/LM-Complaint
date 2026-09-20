@@ -144,15 +144,17 @@ class ReportService:
         story.append(Spacer(1, 15))
 
         # Section 3: Verification Remarks & Signatures
-        story.append(Paragraph("3. OFFICER SIGN-OFF & VERDICT", h2_style))
+        story.append(Paragraph("3. COMPLIANCE DETERMINATION & OFFICER VERDICT", h2_style))
+        three_state = getattr(inspection, "three_state_verdict", None) or inspection.overall_status
         sig_data = [
-            ["AI Status Result:", inspection.overall_status],
-            ["Verification Decision:", inspection.verification_status],
-            ["Remarks:", inspection.officer_remarks or "No remarks provided."],
-            ["Verified By Officer ID:", str(inspection.verified_by_id or "Pending Signature")],
+            ["Three-State Legal Determination:", Paragraph(f"<b>{three_state.replace('_', ' ')}</b>", normal_style)],
+            ["Reason / Compliance Basis:", Paragraph(getattr(inspection, "three_state_reason", "") or "Rules evaluated against statutory packaging parameters.", normal_style)],
+            ["Officer Verification Verdict:", inspection.verification_status],
+            ["Inspector Remarks:", inspection.officer_remarks or "Inspection recorded under standard protocol."],
+            ["Verified By Officer ID:", str(inspection.verified_by_id or "Pending Officer Signature")],
             ["Supervisor Status:", inspection.supervisor_status]
         ]
-        t3 = Table(sig_data, colWidths=[150, 350])
+        t3 = Table(sig_data, colWidths=[160, 340])
         t3.setStyle(TableStyle([
             ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
             ('BOTTOMPADDING', (0,0), (-1,-1), 4),

@@ -130,6 +130,14 @@ class ExtractedDeclarationResponse(BaseModel):
     source_image_id: Optional[int] = None
     bounding_box: Optional[List[float]] = None
     extraction_method: str
+    
+    # Evidence & Multi-Pass Validation
+    raw_value: Optional[str] = None
+    normalized_value: Optional[Any] = None
+    ocr_results: Optional[List[Any]] = None
+    ai_verification: Optional[Any] = None
+    declaration_status: Optional[str] = "VERIFIED"
+    review_reasons: Optional[List[str]] = []
 
     class Config:
         from_attributes = True
@@ -284,6 +292,11 @@ class InspectionResponse(BaseModel):
     calibration_scale_ppm: Optional[float] = None
     calibrated_font_height_mm: Optional[float] = None
     caliper_override_mm: Optional[float] = None
+    
+    # 3-State Final Result & Image Quality
+    three_state_verdict: Optional[str] = "MANUAL_REVIEW_REQUIRED"
+    three_state_reason: Optional[str] = None
+    quality_assessment: Optional[Dict[str, Any]] = None
 
     product: Optional[ProductResponse] = None
     images: List[InspectionImageResponse] = []

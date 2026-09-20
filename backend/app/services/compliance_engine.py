@@ -91,10 +91,29 @@ class ComplianceEngine:
                 )
                 db.add(evidence)
 
-        # Determine overall status
-        if has_fail:
+        # Compute Three-State Final Result
+        from app.services.confidence_engine import confidence_engine
+        decl_dicts = [
+            {
+                "field": d.field_name, 
+                "value": d.value, 
+                "status": getattr(d, "declaration_status", None) or ("VERIFIED" if d.value and d.value not in ["N/A", "NOT_DETECTED"] else "NOT_DETECTED")
+            }
+            for d in inspection.declarations
+        ]
+        quality_ok = (inspection.image_quality != "POOR")
+        three_state = confidence_engine.compute_three_state_verdict(
+            compliance_checks=results,
+            declarations=decl_dicts,
+            image_quality_acceptable=quality_ok
+        )
+        inspection.three_state_verdict = three_state["verdict"]
+        inspection.three_state_reason = three_state["reason"]
+
+        # Determine overall status for backwards compatibility
+        if three_state["verdict"] == "VERIFIED_NON_COMPLIANT":
             overall_status = "POTENTIAL_NON_COMPLIANCE"
-        elif has_review:
+        elif three_state["verdict"] == "MANUAL_REVIEW_REQUIRED":
             overall_status = "MANUAL_REVIEW"
         else:
             overall_status = "COMPLIANT"

@@ -109,6 +109,11 @@ class Inspection(Base):
     calibrated_font_height_mm = Column(Float, nullable=True) # Measured physical font height in mm
     caliper_override_mm = Column(Float, nullable=True) # Officer physical vernier caliper override in mm
     
+    # 3-State Verdict & Image Quality Assessment
+    three_state_verdict = Column(String(50), default="MANUAL_REVIEW_REQUIRED") # VERIFIED_COMPLIANT, VERIFIED_NON_COMPLIANT, MANUAL_REVIEW_REQUIRED
+    three_state_reason = Column(String(500), nullable=True)
+    quality_assessment = Column(JSON, nullable=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
 
     product = relationship("Product", back_populates="inspections")
@@ -161,6 +166,15 @@ class ExtractedDeclaration(Base):
     source_image_id = Column(Integer, ForeignKey("inspection_images.id", ondelete="SET NULL"), nullable=True)
     bounding_box = Column(JSON) # [x, y, w, h]
     extraction_method = Column(String(50), default="regex")
+    
+    # Evidence & Multi-Pass Validation Fields
+    raw_value = Column(String(500), nullable=True)
+    normalized_value = Column(JSON, nullable=True)
+    ocr_results = Column(JSON, nullable=True) # List of candidate outputs across preprocessing variants
+    ai_verification = Column(JSON, nullable=True) # Cross-check outcome from Gemini
+    declaration_status = Column(String(50), default="VERIFIED") # VERIFIED, NON_COMPLIANT, REQUIRES_MANUAL_REVIEW, NOT_DETECTED, NOT_APPLICABLE
+    review_reasons = Column(JSON, default=list)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
 
     inspection = relationship("Inspection", back_populates="declarations")

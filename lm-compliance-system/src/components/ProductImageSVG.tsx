@@ -11,9 +11,16 @@ interface ProductImageSVGProps {
   imageUrl?: string;
   declarations?: Array<{
     declaration: string;
+    detectedValue?: string;
     boundingBox?: [number, number, number, number];
     status?: string;
+    declarationStatus?: string;
+    confidence?: number;
+    normalizedValue?: any;
+    rawText?: string;
+    source?: string;
   }>;
+  onSelectDeclaration?: (declName: string) => void;
 }
 
 export const ProductImageSVG: React.FC<ProductImageSVGProps> = ({
@@ -25,7 +32,8 @@ export const ProductImageSVG: React.FC<ProductImageSVGProps> = ({
   panX = 0,
   panY = 0,
   imageUrl,
-  declarations
+  declarations,
+  onSelectDeclaration
 }) => {
   // Define bounding boxes in percentages [x, y, w, h]
   const defaultBoxes: Record<string, Record<string, { rect: [number, number, number, number]; label: string; color: string }>> = {
@@ -60,16 +68,26 @@ export const ProductImageSVG: React.FC<ProductImageSVGProps> = ({
     const dynamicBoxes: Record<string, { rect: [number, number, number, number]; label: string; color: string }> = {};
     declarations.forEach((d) => {
       if (d.boundingBox && Array.isArray(d.boundingBox)) {
-        const isFail = d.status === 'FAIL';
-        const isWarn = d.status === 'WARNING';
-        const color = isFail 
-          ? 'border-red-500 bg-red-500/10 text-red-700' 
-          : isWarn 
-          ? 'border-amber-500 bg-amber-500/10 text-amber-700' 
-          : 'border-emerald-500 bg-emerald-500/10 text-emerald-700';
+        const isNotDetected = d.declarationStatus === 'NOT_DETECTED' || d.detectedValue === 'N/A' || !d.detectedValue || String(d.detectedValue).includes('Not Detected');
+        const isFail = d.declarationStatus === 'NON_COMPLIANT' || d.status === 'FAIL';
+        const isWarn = d.declarationStatus === 'REQUIRES_MANUAL_REVIEW' || d.status === 'WARNING';
+        
+        let color = 'border-emerald-500 bg-emerald-500/15 text-emerald-700';
+        let label = d.declaration;
+        if (isNotDetected) {
+          color = 'border-slate-400 border-dashed bg-slate-500/10 text-slate-400';
+          label = `${d.declaration} (NOT DETECTED)`;
+        } else if (isFail) {
+          color = 'border-red-500 bg-red-500/15 text-red-700';
+          label = `${d.declaration} (VIOLATION)`;
+        } else if (isWarn) {
+          color = 'border-amber-500 bg-amber-500/15 text-amber-700';
+          label = `${d.declaration} (REVIEW)`;
+        }
+
         dynamicBoxes[d.declaration] = {
           rect: d.boundingBox,
-          label: isFail ? `${d.declaration} (VIOLATION)` : d.declaration,
+          label,
           color
         };
       }
@@ -290,15 +308,17 @@ export const ProductImageSVG: React.FC<ProductImageSVGProps> = ({
           return (
             <div
               key={key}
-              className={`absolute border-2 rounded ${value.color} ${isHighlighted ? 'ring-4 ring-offset-1 ring-blue-500 scale-105 z-10' : 'z-0'} transition-all`}
+              onClick={() => onSelectDeclaration?.(key)}
+              className={`absolute border-2 rounded ${value.color} ${isHighlighted ? 'ring-4 ring-offset-1 ring-blue-500 scale-105 z-10' : 'z-0'} transition-all cursor-pointer hover:opacity-90`}
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
                 width: `${w}%`,
                 height: `${h}%`,
               }}
+              title={`Click to inspect declaration evidence for ${key}`}
             >
-              <div className={`absolute top-0 left-0 -translate-y-full px-1.5 py-0.5 rounded-t text-[8px] font-bold uppercase tracking-wider bg-slate-900 text-white`}>
+              <div className={`absolute top-0 left-0 -translate-y-full px-1.5 py-0.5 rounded-t text-[8px] font-bold uppercase tracking-wider bg-slate-900 text-white shadow`}>
                 {value.label}
               </div>
             </div>

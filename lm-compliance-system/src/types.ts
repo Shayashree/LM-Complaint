@@ -12,6 +12,15 @@ export interface DeclarationCheck {
   boundingBox?: [number, number, number, number]; // [x, y, w, h] in percentages
   measuredFontHeightMm?: number;
   requiredFontHeightMm?: number;
+  
+  // Evidence & Multi-Pass Fields
+  rawText?: string;
+  normalizedValue?: any;
+  ocrCandidates?: any[];
+  aiVerification?: any;
+  declarationStatus?: 'VERIFIED' | 'NON_COMPLIANT' | 'REQUIRES_MANUAL_REVIEW' | 'NOT_DETECTED' | 'NOT_APPLICABLE' | 'ABSENT';
+  reviewReasons?: string[];
+  source?: string;
 }
 
 export interface Inspection {
@@ -49,6 +58,20 @@ export interface Inspection {
   calibratedFontHeightMm?: number;
   caliperOverrideMm?: number;
   panelImages?: { side: string; sideCode: string; imageUrl: string }[];
+  
+  // 3-State Verdict & Image Quality Assessment
+  threeStateVerdict?: 'VERIFIED_COMPLIANT' | 'VERIFIED_NON_COMPLIANT' | 'MANUAL_REVIEW_REQUIRED';
+  threeStateReason?: string;
+  qualityAssessment?: {
+    is_acceptable: boolean;
+    issues: string[];
+    tips: string[];
+    blur_score?: number;
+    lighting_score?: number;
+    glare_percentage?: number;
+    quality_score?: number;
+    readability_status?: string;
+  };
 }
 
 export interface Rule {

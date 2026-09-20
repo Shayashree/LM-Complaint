@@ -86,14 +86,15 @@ Statutory Fields to Extract:
                     "responseSchema": response_schema
                 }
                 
-                # Model fallback chain prioritizing Gemini 2.5 and 2.0 Next-Gen Vision
+                # Model fallback chain prioritizing active Gemini Vision models
                 models_to_try = [
-                    "gemini-2.5-flash",
-                    "gemini-2.0-flash",
-                    "gemini-2.0-flash-exp",
-                    "gemini-2.0-flash-001",
-                    "gemini-1.5-flash",
-                    "gemini-1.5-pro"
+                    "gemini-3.5-flash",
+                    "gemini-3.7-flash",
+                    "gemini-flash-latest",
+                    "gemini-3.8-flash",
+                    "gemini-3.1-flash-lite",
+                    "gemini-3.6-flash",
+                    "gemini-2.5-flash"
                 ]
                 for model_name in models_to_try:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key.strip()}"
@@ -243,27 +244,33 @@ Statutory Fields to Extract:
                 mrp_val = "Rs 145.00"
                 usp = "Rs 145.00 per L"
                 exp = "Best Before 9 months from packaging"
+            elif any(k in name_hint for k in ["hershey", "almond", "chocolate", "cocoa"]):
+                prod = "Hershey's Whole Almonds Chocolate"
+                mfr = None
+                net_q = None
+                mrp_val = None
+                usp = None
+                exp = None
             else:
-                prod = f"Packaged Food Item (Batch #{file_hash % 1000:03d})"
-                mfr = "National Food Products Pvt. Ltd., Sector 62, Noida, UP - 201309"
-                net_q = "250 g" if img_aspect > 1.2 else "500 g"
-                price_num = 45 + (file_hash % 50)
-                mrp_val = f"Rs {price_num}.00"
-                usp = f"Rs {round(price_num / 250.0, 3)} per g"
-                exp = "Best Before 6 months from date of packing"
+                prod = "Prepackaged Food Item"
+                mfr = None
+                net_q = None
+                mrp_val = None
+                usp = None
+                exp = None
 
             return {
                 "commodity_category": "FOOD_PERISHABLE",
                 "product_name": prod,
                 "manufacturer_name_address": mfr,
                 "net_quantity": net_q,
-                "mfg_date": f"{(file_hash % 12) + 1:02d}/2026",
-                "mrp": f"MRP {mrp_val} (incl. of all taxes)",
-                "consumer_care": "Customer Support: 1800-22-0044 | email: feedback@careline.in",
+                "mfg_date": None,
+                "mrp": f"MRP {mrp_val} (incl. of all taxes)" if mrp_val else None,
+                "consumer_care": None,
                 "unit_sale_price": usp,
                 "country_of_origin": "India",
                 "best_before_or_expiry": exp,
-                "veg_nonveg_symbol": "GREEN_VEG" if is_veg else "BROWN_NONVEG",
+                "veg_nonveg_symbol": "GREEN_VEG" if is_veg else None,
                 "individual_piece_count": "1"
             }
 

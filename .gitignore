@@ -24,6 +24,8 @@ pip-delete-this-directory.txt
 
 # Databases and Local Storage
 *.db
+*.db-shm
+*.db-wal
 *.sqlite3
 *.log
 uploads/

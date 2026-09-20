@@ -48,7 +48,7 @@ def create_inspection(
     db: Session = Depends(get_db),
     current_user: User = Depends(PermissionChecker(["INSPECTOR"]))
 ):
-    # 1. Save original image
+    # 1. Save original packaging image
     try:
         storage_path = storage_provider.save_file(file, subfolder="inspections")
     except Exception as e:
@@ -57,15 +57,13 @@ def create_inspection(
             detail=f"Failed to save packaging upload image: {e}"
         )
 
-    # 2. Preprocess image
-    processed_path = image_service.preprocess_image(storage_path)
-    assessment = image_service.estimate_readability(storage_path)
+    # 2. Phase 1 Image Quality Check
+    assessment = image_service.check_image_quality(storage_path)
 
     # 3. Calculate Calibrated Scale & PDP Area
     pdp_area = round((float(pdp_width_mm) * float(pdp_height_mm)) / 100.0, 1) if (pdp_width_mm and pdp_height_mm) else None
     calibration_scale_ppm = None
     if calibration_method == "REFERENCE_CARD":
-        # Standard ID-1 ISO Card is 85.60 mm wide. Default calibrated optical ratio
         calibration_scale_ppm = 4.82
     elif pdp_height_mm and pdp_height_mm > 0:
         calibration_scale_ppm = round(800.0 / float(pdp_height_mm), 2)
@@ -87,10 +85,34 @@ def create_inspection(
         pdp_height_mm=pdp_height_mm,
         pdp_area_cm2=pdp_area,
         calibration_scale_ppm=calibration_scale_ppm,
-        caliper_override_mm=caliper_override_mm
+        caliper_override_mm=caliper_override_mm,
+        three_state_verdict="MANUAL_REVIEW_REQUIRED" if not assessment["is_acceptable"] else "MANUAL_REVIEW_REQUIRED",
+        three_state_reason="⚠ Image quality insufficient: " + "; ".join(assessment["issues"]) if not assessment["is_acceptable"] else "Statutory scan in progress.",
+        quality_assessment=assessment
     )
     db.add(inspection)
     db.flush()
+
+    # If image quality is fundamentally unacceptable, DO NOT perform full compliance analysis
+    # Return clear message and do not falsely classify fields as missing
+    if not assessment["is_acceptable"]:
+        ins_image = InspectionImage(
+            inspection_id=inspection_id,
+            storage_path=storage_path,
+            image_side=image_side,
+            is_processed=False,
+            processed_path=storage_path,
+            quality_score=assessment["quality_score"],
+            readability_status=assessment["readability_status"]
+        )
+        db.add(ins_image)
+        db.commit()
+        db.refresh(inspection)
+        return inspection
+
+    # 4. Phase 2 Package Detection & Perspective Correction
+    corrected_path, perspective_meta = image_service.detect_package_and_correct_perspective(storage_path)
+    processed_path = corrected_path if perspective_meta.get("applied") else image_service.preprocess_image(storage_path)
 
     # Create Inspection Image entry
     ins_image = InspectionImage(
@@ -105,7 +127,7 @@ def create_inspection(
     db.add(ins_image)
     db.flush()
 
-    # 4. Trigger OCR & Extractor synchronously for instant feedback in prototype
+    # 5. Optical Character Recognition
     ocr_out = ocr_service.perform_ocr(processed_path)
     total_conf = 0.0
     for line in ocr_out:
@@ -117,12 +139,10 @@ def create_inspection(
         )
         db.add(res)
         total_conf += line["confidence"]
-        
-    avg_conf = round(total_conf / len(ocr_out), 2) if ocr_out else 1.0
     db.flush()
 
-    # Extract structured fields and category classification
-    decls, detected_category = declaration_service.extract_declarations_llm(
+    # 6. Extract structured declarations via multi-pass pipeline
+    decls, detected_category, quality_meta = declaration_service.extract_declarations_llm(
         processed_path, 
         ocr_out,
         commodity_category=commodity_category,
@@ -131,6 +151,7 @@ def create_inspection(
     )
     if not commodity_category and detected_category:
         inspection.commodity_category = detected_category
+    inspection.quality_assessment = quality_meta
 
     for decl in decls:
         db_decl = ExtractedDeclaration(
@@ -140,7 +161,13 @@ def create_inspection(
             confidence=decl["confidence"],
             source_image_id=ins_image.id,
             bounding_box=decl["bounding_box"],
-            extraction_method=decl["extraction_method"]
+            extraction_method=decl["extraction_method"],
+            raw_value=decl.get("raw_value"),
+            normalized_value=decl.get("normalized_value"),
+            ocr_results=decl.get("ocr_results"),
+            ai_verification=decl.get("ai_verification"),
+            declaration_status=decl.get("declaration_status", "VERIFIED"),
+            review_reasons=decl.get("review_reasons", [])
         )
         db.add(db_decl)
     db.flush()
@@ -154,18 +181,16 @@ def create_inspection(
             if matched_prod:
                 inspection.product_id = matched_prod.id
 
-    # 5. Run Compliance check pipeline
-    db.commit() # Commit declarations and files
-    
-    # Run compliance engine calculation (run synchronously for the demo flow, or queue in BackgroundTasks)
+    # 7. Run Compliance check pipeline & 3-State Verdict
+    db.commit()
     compliance_engine.run_compliance_check(db, inspection_id)
 
-    # 6. Automatically compile official PDF compliance report for this product scan
+    # 8. Automatically compile official PDF compliance report
     try:
         report_service.generate_compliance_report(db, inspection_id, current_user.id)
     except Exception as e:
         print(f"Auto-generation of PDF report failed for {inspection_id}: {e}")
-    
+
     # Audit log
     audit = AuditLog(
         user_id=current_user.id,
@@ -174,12 +199,117 @@ def create_inspection(
         entity_type="inspection",
         entity_id=inspection_id,
         timestamp=datetime.utcnow(),
-        action_metadata={"overall_status": inspection.overall_status}
+        action_metadata={"overall_status": inspection.overall_status, "three_state_verdict": inspection.three_state_verdict}
     )
     db.add(audit)
     db.commit()
     db.refresh(inspection)
 
+    return inspection
+
+@router.post("/validate-quality")
+def validate_quality_preview(
+    file: UploadFile = File(...)
+):
+    """
+    Real-time pre-capture image quality validation.
+    Checks blur, glare, lighting, and package presence without saving an inspection record.
+    """
+    import tempfile
+    import shutil
+    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename or "preview.jpg")[1]) as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        tmp_path = tmp.name
+
+    try:
+        assessment = image_service.check_image_quality(tmp_path)
+        return {
+            "success": True,
+            "quality_assessment": assessment
+        }
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+@router.post("/{id}/rescan-field", response_model=InspectionResponse)
+def rescan_declaration_field(
+    id: str,
+    field_name: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(PermissionChecker(["INSPECTOR"]))
+):
+    """
+    Automatic rescan mechanism for low-confidence or disputed declarations.
+    Performs high-res re-cropping, alternative preprocessing variants, multi-pass OCR,
+    and Gemini cross-check.
+    """
+    inspection = db.query(Inspection).filter(Inspection.id == id).first()
+    if not inspection:
+        raise HTTPException(status_code=404, detail="Inspection not found")
+
+    decl = db.query(ExtractedDeclaration).filter(
+        ExtractedDeclaration.inspection_id == id,
+        ExtractedDeclaration.field_name == field_name
+    ).first()
+
+    if not decl:
+        raise HTTPException(status_code=404, detail=f"Declaration '{field_name}' not found")
+
+    # Fetch source image
+    source_img = inspection.images[0] if inspection.images else None
+    if not source_img:
+        raise HTTPException(status_code=400, detail="No source image available for rescan")
+
+    active_path = source_img.processed_path or source_img.storage_path
+    from app.services.field_parser import field_parser
+    from app.services.providers.ocr_provider import MultiPassTesseractProvider
+    from app.services.providers.gemini_provider import GeminiVisionProvider
+    from app.services.confidence_engine import confidence_engine
+
+    # Generate padded crop
+    crop_path = image_service.crop_region_high_res(active_path, decl.bounding_box or [10, 50, 40, 10], padding_ratio=0.12)
+    ocr_p = MultiPassTesseractProvider()
+    ocr_res = ocr_p.perform_ocr(crop_path or active_path, field_name=field_name)
+
+    consensus_text = ocr_res.get("consensus_text") or decl.value or "NOT_DETECTED"
+    parsed = field_parser.parse_and_normalize(field_name, consensus_text)
+
+    gemini_p = GeminiVisionProvider()
+    ai_check = None
+    if crop_path and consensus_text not in ["NOT_DETECTED", "N/A"]:
+        try:
+            ai_check = gemini_p.cross_verify(crop_path, field_name, consensus_text)
+        except Exception:
+            pass
+
+    evidence = confidence_engine.compute_declaration_evidence(
+        field=field_name,
+        parsed_result=parsed,
+        image_quality_meta={"quality_score": source_img.quality_score},
+        spatial_grounding_meta={"bbox": decl.bounding_box, "confidence": 0.95},
+        ocr_consensus_meta=ocr_res,
+        ai_verification_meta=ai_check
+    )
+
+    # Update declaration record
+    decl.value = evidence["value"] if evidence["value"] != "NOT_DETECTED" else "N/A"
+    decl.raw_value = evidence["raw_text"]
+    decl.normalized_value = evidence["normalized_value"]
+    decl.confidence = evidence["confidence"]
+    decl.ocr_results = evidence["ocr_results"]
+    decl.ai_verification = evidence["ai_verification"]
+    decl.declaration_status = evidence["status"]
+    decl.review_reasons = evidence["review_reasons"]
+    decl.extraction_method = "Automatic Rescan"
+
+    db.commit()
+    compliance_engine.run_compliance_check(db, id)
+    try:
+        report_service.generate_compliance_report(db, id, current_user.id)
+    except Exception:
+        pass
+
+    db.refresh(inspection)
     return inspection
 
 @router.get("", response_model=List[InspectionResponse])

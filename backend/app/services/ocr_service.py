@@ -52,10 +52,65 @@ class OCRService:
                         })
                 return ocr_results
             except Exception as e:
-                logger.error(f"PaddleOCR processing error: {e}. Falling back to mock data.")
+                logger.error(f"PaddleOCR processing error: {e}. Falling back to visual engine.")
 
-        # Fallback Mock OCR Engine
+        # 2. Real Gemini Multimodal Vision OCR
+        gemini_ocr = self._run_gemini_ocr(image_path)
+        if gemini_ocr and len(gemini_ocr) > 0:
+            logger.info(f"Gemini Vision OCR successfully extracted {len(gemini_ocr)} text elements.")
+            return gemini_ocr
+
+        # Fallback Mock OCR Engine (Only for sample demo presets if completely offline)
         return self._get_mock_ocr_data(image_path)
+
+    def _run_gemini_ocr(self, image_path: str) -> list:
+        api_key = getattr(settings, "GEMINI_API_KEY", None) or os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            return []
+        try:
+            import base64, requests, json
+            with open(image_path, "rb") as f:
+                b64_data = base64.b64encode(f.read()).decode("utf-8")
+            
+            prompt = (
+                "Perform Optical Character Recognition (OCR) on this packaged commodity image. "
+                "List all distinct lines or text segments printed on the product label. "
+                "Return a JSON array of objects with keys: "
+                "text (string of exact printed text), "
+                "confidence (float 0.0 to 1.0), "
+                "bbox ([x, y, width, height] as percentage numbers from 0 to 100). "
+                "Do not include text that is not printed on the package."
+            )
+            models = ["gemini-3.5-flash", "gemini-3.7-flash", "gemini-flash-latest", "gemini-3.8-flash", "gemini-3.1-flash-lite", "gemini-3.6-flash"]
+            for m in models:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key.strip()}"
+                payload = {
+                    "contents": [{"parts": [
+                        {"text": prompt},
+                        {"inlineData": {"mimeType": "image/jpeg", "data": b64_data}}
+                    ]}],
+                    "generationConfig": {"temperature": 0.0, "responseMimeType": "application/json"}
+                }
+                resp = requests.post(url, json=payload, headers={"Content-Type": "application/json", "x-goog-api-key": api_key.strip()}, timeout=15)
+                if resp.status_code == 200:
+                    text_out = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    parsed = json.loads(text_out)
+                    if isinstance(parsed, list) and len(parsed) > 0:
+                        formatted = []
+                        for item in parsed:
+                            txt = str(item.get("text", "")).strip()
+                            if txt:
+                                bbox = item.get("bbox", [10, 10, 50, 10])
+                                formatted.append({
+                                    "text": txt,
+                                    "confidence": float(item.get("confidence", 0.95)),
+                                    "bbox": bbox
+                                })
+                        if formatted:
+                            return formatted
+        except Exception as e:
+            logger.warning(f"Gemini OCR fallback error: {e}")
+        return []
 
     def _get_mock_ocr_data(self, image_path: str) -> list:
         filename = os.path.basename(image_path).lower()
